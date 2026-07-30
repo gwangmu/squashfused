@@ -1,31 +1,12 @@
 #!/bin/bash
 
 set -eu
+source /usr/local/lib/squashfused/common.sh
 
-exec 3>/tmp/hook-log-4
-CONTAINER_STATE=$(cat)
+log::file "/tmp/squashfused-forward.log"
+log::echo "squashfused-forward"
 
-log::echo() {
-  local msg=${1:-}
-  echo "$msg" >&3 || true
-}
-
-state::read() {
-  local field=$1
-  echo "$CONTAINER_STATE" | jq "$field"
-}
-
-state::add() {
-  local field=$1
-  local value=$2
-  CONTAINER_STATE=$(echo "$CONTAINER_STATE" | jq "$field"' += '"$value")
-}
-
-state::print() {
-  echo "$CONTAINER_STATE"
-}
-
-#--
+state::load
 
 # Create a mapping from the container ID to a daemon ID.
 SQUASHFUSED_MAP_DIR_PATH="/tmp/squashfused-map"

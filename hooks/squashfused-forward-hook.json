@@ -1,10 +1,10 @@
 {
     "version": "1.0.0",
     "hook": {
-        "path": "/usr/local/bin/squashfused-clean"
+        "path": "/usr/local/libexec/squashfused/forward"
     },
     "when": {
         "always": true
     },
-    "stages": ["poststop"]
+    "stages": ["createRuntime"]
 }

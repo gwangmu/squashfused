@@ -1,10 +1,10 @@
 {
     "version": "1.0.0",
     "hook": {
-        "path": "/usr/local/bin/squashfused-init"
+        "path": "/usr/local/libexec/squashfused/clean"
     },
     "when": {
         "always": true
     },
-    "stages": ["precreate"]
+    "stages": ["poststop"]
 }

@@ -1,10 +1,10 @@
 {
     "version": "1.0.0",
     "hook": {
-        "path": "/usr/local/bin/squashfused-forward"
+        "path": "/usr/local/libexec/squashfused/init"
     },
     "when": {
         "always": true
     },
-    "stages": ["createRuntime"]
+    "stages": ["precreate"]
 }

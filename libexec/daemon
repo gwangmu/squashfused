@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+source /usr/local/lib/squashfused/common.sh
+
+log::file "/tmp/squashfused-daemon.log"
+log::echo "squashfused-daemon"
+
+while true; do
+  log::echo "$(date)"
+  sleep 1
+done
