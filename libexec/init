@@ -39,11 +39,11 @@ state::add '.mounts' '
   "source": "'"$BRIDGE_FIFO_HOST_PATH"'",
   "type": "bind",
   "destination": "'"$BRIDGE_FIFO_CONT_PATH"'",
-  "options": [ "bind" ]
+  "options": [ "bind", "rw" ]
 }]'
 
 # Start off the delegate daemon.
-nohup setsid /usr/local/libexec/squashfused/daemon >/dev/null 2>&1 &
+nohup setsid /usr/local/libexec/squashfused/daemon "$DAEMON_ID" >/dev/null 2>&1 &
 echo $! >"$SQUASHFUSED_DIR_HOST_PATH/daemon_pid"
 
 # DEBUG: log modified OCI runtime spec.

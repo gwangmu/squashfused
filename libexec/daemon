@@ -6,7 +6,10 @@ source /usr/local/lib/squashfused/common.sh
 log::file "/tmp/squashfused-daemon.log"
 log::echo "squashfused-daemon"
 
-while true; do
-  log::echo "$(date)"
-  sleep 1
+DAEMON_ID=$1
+SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
+BRIDGE_FIFO_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_fifo"
+
+while IFS= read -r ARGS <"$BRIDGE_FIFO_HOST_PATH"; do
+  log::echo "$ARGS"
 done
