@@ -1,0 +1,10 @@
+#!/bin/bash
+
+exec 3>/tmp/hook-log-2
+
+echo "asdfadsf" >&3
+
+while true; do
+  date >&3
+  sleep 1
+done

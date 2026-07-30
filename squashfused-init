@@ -1,0 +1,74 @@
+#!/bin/bash
+
+set -eu
+
+exec 3>/tmp/hook-log
+CONTAINER_STATE=$(cat)
+
+log::echo() {
+  local msg=${1:-}
+  echo "$msg" >&3 || true
+}
+
+state::read() {
+  local field=$1
+  echo "$CONTAINER_STATE" | jq "$field"
+}
+
+state::add() {
+  local field=$1
+  local value=$2
+  CONTAINER_STATE=$(echo "$CONTAINER_STATE" | jq "$field"' += '"$value")
+}
+
+state::print() {
+  echo "$CONTAINER_STATE"
+}
+
+#--
+
+log::echo "squashfused-init"
+
+# There is no container ID because, understandably, this is before `create`.
+# Instead, use a (pseudo-)hash of the root filesystem path.
+DAEMON_ID=$(cksum <<< $(state::read '.root.path') | cut -d' ' -f1)
+SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
+SQUASHFUSED_DIR_CONT_PATH="/squashfused"
+mkdir -p "$SQUASHFUSED_DIR_HOST_PATH"
+
+# Create a bridge directory.
+BRIDGE_DIR_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_dir"
+BRIDGE_DIR_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_dir"
+mkdir -p "$BRIDGE_DIR_HOST_PATH"
+
+# Create a bridge FIFO.
+BRIDGE_FIFO_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_fifo"
+BRIDGE_FIFO_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_fifo"
+mkfifo "$BRIDGE_FIFO_HOST_PATH"
+
+# Inject briedges.
+state::add '.mounts' '
+[{ 
+  "source": "'"$BRIDGE_DIR_HOST_PATH"'",
+  "type": "bind",
+  "destination": "'"$BRIDGE_DIR_CONT_PATH"'",
+  "options": [ "bind", "nosuid", "shared" ]
+}]'
+
+state::add '.mounts' '
+[{ 
+  "source": "'"$BRIDGE_FIFO_HOST_PATH"'",
+  "type": "bind",
+  "destination": "'"$BRIDGE_FIFO_CONT_PATH"'",
+  "options": [ "bind" ]
+}]'
+
+# Start off the delegate daemon.
+nohup setsid /usr/local/bin/squashfused-daemon >/dev/null 2>&1 &
+echo $! >"$SQUASHFUSED_DIR_HOST_PATH/daemon_pid"
+
+# DEBUG: log modified OCI runtime spec.
+log::echo "$(state::read '.')"
+
+# Print modified OCI runtime spec.
+state::print

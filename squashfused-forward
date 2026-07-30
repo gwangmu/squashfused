@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -eu
+
+exec 3>/tmp/hook-log-4
+CONTAINER_STATE=$(cat)
+
+log::echo() {
+  local msg=${1:-}
+  echo "$msg" >&3 || true
+}
+
+state::read() {
+  local field=$1
+  echo "$CONTAINER_STATE" | jq "$field"
+}
+
+state::add() {
+  local field=$1
+  local value=$2
+  CONTAINER_STATE=$(echo "$CONTAINER_STATE" | jq "$field"' += '"$value")
+}
+
+state::print() {
+  echo "$CONTAINER_STATE"
+}
+
+#--
+
+# Create a mapping from the container ID to a daemon ID.
+SQUASHFUSED_MAP_DIR_PATH="/tmp/squashfused-map"
+mkdir -p "$SQUASHFUSED_MAP_DIR_PATH"
+
+DAEMON_ID=$(cksum <<< $(state::read '.root') | cut -d' ' -f1)
+CONTAINER_ID=$(state::read '.id')
+echo "$DAEMON_ID" >"$SQUASHFUSED_MAP_DIR_PATH/$CONTAINER_ID"
+
+# DEBUG: log modified OCI runtime spec.
+log::echo "$(state::read '.')"
+
+# Print modified OCI runtime spec.
+state::print

@@ -1,0 +1,10 @@
+{
+    "version": "1.0.0",
+    "hook": {
+        "path": "/usr/local/bin/squashfused-forward"
+    },
+    "when": {
+        "always": true
+    },
+    "stages": ["createRuntime"]
+}
