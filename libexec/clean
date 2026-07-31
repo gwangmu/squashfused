@@ -20,14 +20,18 @@ log::echo "daemon pid path: $DAEMON_PID_PATH"
 log::echo "daemon pid: $DAEMON_PID"
 
 # Kill the daemon.
-kill -9 $DAEMON_PID
+kill -9 $DAEMON_PID || true
 
-log::echo "$(state::read '.')"
+log::echo "bridge dir host path: $BRIDGE_DIR_HOST_PATH"
+log::echo "daemon dir host path: $DAEMON_DIR_HOST_PATH"
+log::echo "map file path: $(path::container_id_to_daemon_id $CONTAINER_ID)"
 
 # Clean up the files related to the late daemon.
 umount "$BRIDGE_DIR_HOST_PATH" || true
 rm -rf "$DAEMON_DIR_HOST_PATH"
 rm -f "$(path::container_id_to_daemon_id $CONTAINER_ID)"
+
+log::echo "$(state::read '.')"
 
 # Poorman's attempt to avoid log flooding.
 # Keep the number of log files under a constant value.

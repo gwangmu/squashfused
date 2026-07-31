@@ -19,6 +19,8 @@ log::echo "squashfused-server"
 while IFS= read -r DAEMON_ID <"$SERVER_FIFO_PATH"; do
   path::set_host "$DAEMON_ID"
 
+  log::echo "daemon id: $DAEMON_ID"
+
   # Create a bridge directory and FIFO.
   mkdir -p "$BRIDGE_DIR_HOST_PATH"
   mkfifo "$BRIDGE_FIFO_HOST_PATH"
@@ -26,6 +28,8 @@ while IFS= read -r DAEMON_ID <"$SERVER_FIFO_PATH"; do
   # Create a delegate daemon.
   nohup setsid /usr/local/libexec/squashfused/daemon "$DAEMON_ID" >/dev/null 2>&1 &
   DAEMON_PID=$!
+
+  log::echo "daemon pid: $DAEMON_PID"
 
   # Write the daemon's pid (and notify the completion of the daemon creation).
   echo "$DAEMON_PID" >"$DAEMON_PID_PATH"

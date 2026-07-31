@@ -2,6 +2,72 @@
 
 set -eu
 
+BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
 BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
+LOG_CONT_PATH="/tmp/squashfused.log"
 
-echo "$1" >"$BRIDGE_FIFO_CONT_PATH"
+log() {
+  echo "[$(date +%Y-%m-%d:%H:%M.%3N)] (id ${SQUASHFS_ID:-?}) ""$@" >>$LOG_CONT_PATH
+}
+
+# Find a proper ID.
+SQUASHFS_ID=0
+while [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID" ]]; do
+  (( SQUASHFS_ID = SQUASHFS_ID 1 ))
+done
+
+log "squashfs id: $SQUASHFS_ID"
+
+# Classify arguments.
+SRCPATH=""
+DSTPATH=""
+OPTS=""
+
+for ARG in "$@"; do
+  case $ARG in
+    -*)
+      OPTS="$OPTS $ARG"
+      ;;
+    *)
+      if [[ -z "$SRCPATH" ]]; then
+        SRCPATH="$ARG"
+      elif [[ -z "$DSTPATH" ]]; then
+        DSTPATH="$ARG"
+      else
+        EXTRAS="$EXTRAS $ARG"
+      fi
+      ;;
+  esac
+done
+
+log "srcpath: $SRCPATH"
+log "dstpath: $DSTPATH"
+log "opts: $OPTS"
+
+if [[ -f "$SRCPATH" ]] && [[ -d "$DSTPATH" ]]; then 
+  log "mount"
+
+  # Copy the requested SquashFS image to the bridge directory.
+  cp "$SRCPATH" "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID"
+
+  # Request a squashfs mount to the delegate daemon.
+  echo "--id=$SQUASHFS_ID --opts=" >"$BRIDGE_FIFO_CONT_PATH"
+else
+  log "forward"
+
+  # Forward the arguments to the delegate daemon.
+  echo \
+    '{                                    '\
+    '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+    '  "args": "'"$@"'"                   '\
+    '}                                    '\
+    >"$BRIDGE_FIFO_CONT_PATH"
+
+  while [[ ! -f "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done" ]]; do
+    sleep 0.1
+  done
+  
+  cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
+  cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
+  rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
+fi

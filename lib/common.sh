@@ -3,6 +3,7 @@
 log::file() {
   local filepath=$1
   exec 3>"$filepath"
+  exec 2>&3
 }
 
 log::echo() {
@@ -16,7 +17,7 @@ state::load() {
 
 state::read() {
   local field=$1
-  echo "$CONTAINER_STATE" | jq "$field"
+  echo "$CONTAINER_STATE" | jq -r "$field"
 }
 
 state::add() {

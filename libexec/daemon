@@ -15,8 +15,13 @@ path::set_host "$DAEMON_ID"
 log::echo "owner uid \"$DAEMON_DIR_HOST_PATH\": $(stat "$DAEMON_DIR_HOST_PATH")"
 
 log::echo "$(id)"
-while IFS= read -r ARGS <"$BRIDGE_FIFO_HOST_PATH"; do
-  log::echo "$ARGS"
-  log::echo "squashfuse /home/gwangmu/test_shared/$ARGS \"$BRIDGE_DIR_HOST_PATH\""
-  log::echo "$(squashfuse /home/gwangmu/test_shared/$ARGS "$BRIDGE_DIR_HOST_PATH" 2>&1)"
+while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
+  log::echo "$CMD"
+  SQUASHFS_ID=$(echo "$CMD" | jq -r '.squashfs_id')
+  ARGS=$(echo "$CMD" | jq -r '.args')
+  log::echo "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out"
+  squashfuse $ARGS >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out" 2>"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.err" || true
+  #log::echo "squashfuse /home/gwangmu/test_shared/$ARGS \"$BRIDGE_DIR_HOST_PATH\""
+  #log::echo "$(squashfuse /home/gwangmu/test_shared/$ARGS "$BRIDGE_DIR_HOST_PATH" 2>&1)"
+  touch "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done"
 done

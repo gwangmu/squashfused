@@ -18,10 +18,10 @@ path::set_host "$DAEMON_ID"
 # Start off the delegate daemon.
 echo "$DAEMON_ID" >"$SERVER_FIFO_PATH"
 
-while true; do
-  if [[ -f "$DAEMON_PID_PATH" ]]; then
-    break
-  fi
+# Unidirectional communication (i.e., waiting for the server's response via FIFO)
+# could open up the possibility of race conditions down the road.
+# Instead, just wait for a PID file that's guaranteed to be created at the end.
+while [[ ! -f "$DAEMON_PID_PATH" ]]; do 
   sleep 0.1
 done
 
