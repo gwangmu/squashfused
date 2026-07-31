@@ -6,6 +6,10 @@ source /usr/local/lib/squashfused/path.sh
 
 DAEMON_ID=$1
 
+jq::get() {
+  echo "$1" | jq -r "$2"
+}
+
 # Set up logging.
 log::file "$SERVER_LOG_DIR_PATH/daemon-$DAEMON_ID.log"
 log::echo "squashfused-daemon-$DAEMON_ID"
@@ -17,11 +21,29 @@ log::echo "owner uid \"$DAEMON_DIR_HOST_PATH\": $(stat "$DAEMON_DIR_HOST_PATH")"
 log::echo "$(id)"
 while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
   log::echo "$CMD"
-  SQUASHFS_ID=$(echo "$CMD" | jq -r '.squashfs_id')
-  ARGS=$(echo "$CMD" | jq -r '.args')
-  log::echo "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out"
-  squashfuse $ARGS >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out" 2>"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.err" || true
-  #log::echo "squashfuse /home/gwangmu/test_shared/$ARGS \"$BRIDGE_DIR_HOST_PATH\""
-  #log::echo "$(squashfuse /home/gwangmu/test_shared/$ARGS "$BRIDGE_DIR_HOST_PATH" 2>&1)"
+
+  SQUASHFS_ID=$(jq::get "$CMD" '.squashfs_id')
+  MODE=$(jq::get "$CMD" '.mode')
+  STDOUT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out"
+  STDERR_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.err"
+  
+  case $MODE in
+    forward)
+      ARGS=$(jq::get "$CMD" '.args')
+      squashfuse $ARGS >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
+      ;;
+    mount)
+      OPTS=$(jq::get "$CMD" '.opts')
+      EXTRAS=$(jq::get "$CMD" '.extras')
+      SRCPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.sqfs"
+      DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount"
+      mkdir "$DSTPATH"
+      squashfuse $OPTS "$SRCPATH" "$DSTPATH" $EXTRAS >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
+      ;;
+    unmount)
+      MOUNT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount"
+      umount "$MOUNT_PATH" >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
+  esac
+
   touch "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done"
 done

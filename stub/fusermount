@@ -1,0 +1,66 @@
+#!/bin/bash
+
+if [[ "$1" != "-u" ]]; then
+  echo "$0: only '-u' is supported."
+  exit 1
+fi
+
+if [[ -z "$2" ]]; then
+  echo "$0: no target destination path provided."
+  exit 1
+fi
+
+set -eu
+
+BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
+BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
+LOG_CONT_PATH="/tmp/squashfused.log"
+
+log() {
+  echo "[$(date +%Y-%m-%d:%H:%M.%3N)] (id ${SQUASHFS_ID:-?}) ""$@" >>$LOG_CONT_PATH
+}
+
+DSTPATH=$2
+REAL_DSTPATH=$(realpath "$DSTPATH" || echo "")
+
+if [[ ! -d "$REAL_DSTPATH" ]]; then
+  echo "$0: '$2' is not a valid path."
+  exit 1
+fi
+
+# Find a proper ID.
+if echo "$REAL_DSTPATH" | grep "$BRIDGE_DIR_CONT_PATH/.*.mount" >/dev/null 2>&1; then
+  __SQUASHFS_ID=${REAL_DSTPATH#$BRIDGE_DIR_CONT_PATH/}
+  SQUASHFS_ID=${__SQUASHFS_ID%.mount}
+else
+  echo "$0: cannot derive a squashfs file id."
+  exit 1
+fi
+
+log "squashfs id: $SQUASHFS_ID"
+
+# Request unmount to the daemon.
+echo \
+  '{                                    '\
+  '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+  '  "mode": "unmount"                  '\
+  '}                                    '\
+  >"$BRIDGE_FIFO_CONT_PATH"
+
+while [[ ! -f "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done" ]]; do
+  sleep 0.1
+done
+
+cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
+cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
+rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
+
+# Fix the destination mount point.
+rm "$DSTPATH"
+mkdir "$DSTPATH"
+
+# Clean up leftover.
+rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
+rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err"
+rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs"
+rmdir "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount"

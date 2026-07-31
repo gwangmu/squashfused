@@ -54,6 +54,14 @@ state::add '.mounts' '
   "options": [ "bind" ]
 }]'
 
+state::add '.mounts' '
+[{ 
+  "source": "/usr/local/libexec/squashfused/stub/fusermount",
+  "type": "bind",
+  "destination": "/usr/bin/fusermount",
+  "options": [ "bind" ]
+}]'
+
 # DEBUG: log modified OCI runtime spec.
 log::echo "$(state::read '.')"
 

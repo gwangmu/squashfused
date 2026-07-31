@@ -22,6 +22,7 @@ log "squashfs id: $SQUASHFS_ID"
 SRCPATH=""
 DSTPATH=""
 OPTS=""
+EXTRAS=""
 
 for ARG in "$@"; do
   case $ARG in
@@ -44,14 +45,34 @@ log "srcpath: $SRCPATH"
 log "dstpath: $DSTPATH"
 log "opts: $OPTS"
 
-if [[ -f "$SRCPATH" ]] && [[ -d "$DSTPATH" ]]; then 
+if [[ -f "$SRCPATH" ]] && [[ -d "$DSTPATH" ]] && [[ -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
   log "mount"
 
   # Copy the requested SquashFS image to the bridge directory.
-  cp "$SRCPATH" "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID"
+  cp "$SRCPATH" "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs"
 
   # Request a squashfs mount to the delegate daemon.
-  echo "--id=$SQUASHFS_ID --opts=" >"$BRIDGE_FIFO_CONT_PATH"
+  echo \
+    '{                                    '\
+    '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+    '  "mode": "mount",                   '\
+    '  "opts": "'"$OPTS"'",               '\
+    '  "extras": "'"$EXTRAS"'"            '\
+    '}                                    '\
+    >"$BRIDGE_FIFO_CONT_PATH"
+
+  while [[ ! -f "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done" ]]; do
+    sleep 0.1
+  done
+
+  cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
+  cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
+  rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
+
+  if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" ]]; then
+    rmdir "$DSTPATH"
+    ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$DSTPATH"
+  fi
 else
   log "forward"
 
@@ -59,6 +80,7 @@ else
   echo \
     '{                                    '\
     '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+    '  "mode": "forward"                  '\
     '  "args": "'"$@"'"                   '\
     '}                                    '\
     >"$BRIDGE_FIFO_CONT_PATH"
