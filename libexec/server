@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -eu
+source /usr/local/lib/squashfused/common.sh
+
+log::file "/tmp/squashfused-server.log"
+log::echo "squashfused-server"
+
+# Create a server directory.
+SQUASHFUSED_SERVER_DIR_PATH="/tmp/squashfused-server"
+mkdir -p "$SQUASHFUSED_SERVER_DIR_PATH"
+
+# Create a server FIFO.
+SQUASHFUSED_SERVER_FIFO_PATH="$SQUASHFUSED_SERVER_DIR_PATH/spawn"
+mkfifo "$SQUASHFUSED_SERVER_FIFO_PATH" || true
+
+# Wait and spawn a daemon on demand.
+while IFS= read -r DAEMON_ID <"$SQUASHFUSED_SERVER_FIFO_PATH"; do
+  SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
+  SQUASHFUSED_DIR_CONT_PATH="/squashfused"
+  mkdir -p "$SQUASHFUSED_DIR_HOST_PATH"
+
+  # Create a bridge directory.
+  BRIDGE_DIR_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_dir"
+  BRIDGE_DIR_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_dir"
+  mkdir -p "$BRIDGE_DIR_HOST_PATH"
+
+  # Create a bridge FIFO.
+  BRIDGE_FIFO_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_fifo"
+  BRIDGE_FIFO_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_fifo"
+  mkfifo "$BRIDGE_FIFO_HOST_PATH"
+
+  nohup setsid /usr/local/libexec/squashfused/daemon "$DAEMON_ID" >/dev/null 2>&1 &
+  DAEMON_PID=$!
+  echo "$DAEMON_PID" >"$SQUASHFUSED_DIR_HOST_PATH/daemon_pid"
+done

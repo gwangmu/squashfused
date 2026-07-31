@@ -11,27 +11,27 @@ state::load
 # There is no container ID because, understandably, this is before `create`.
 # Instead, use a (pseudo-)hash of the root filesystem path.
 DAEMON_ID=$(cksum <<< $(state::read '.root.path') | cut -d' ' -f1)
+
+# Start off the delegate daemon.
+SQUASHFUSED_SERVER_DIR_PATH="/tmp/squashfused-server"
+SQUASHFUSED_SERVER_FIFO_PATH="$SQUASHFUSED_SERVER_DIR_PATH/spawn"
+echo "$DAEMON_ID" >"$SQUASHFUSED_SERVER_FIFO_PATH"
+
 SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
 SQUASHFUSED_DIR_CONT_PATH="/squashfused"
-mkdir -p "$SQUASHFUSED_DIR_HOST_PATH"
-
-# Create a bridge directory.
 BRIDGE_DIR_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_dir"
 BRIDGE_DIR_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_dir"
-mkdir -p "$BRIDGE_DIR_HOST_PATH"
-
-# Create a bridge FIFO.
 BRIDGE_FIFO_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_fifo"
 BRIDGE_FIFO_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_fifo"
-mkfifo "$BRIDGE_FIFO_HOST_PATH"
 
 # Inject briedges.
+# Apparently, this SPECIFIC mount option actually works as a shared bind mount.
 state::add '.mounts' '
 [{ 
   "source": "'"$BRIDGE_DIR_HOST_PATH"'",
   "type": "bind",
   "destination": "'"$BRIDGE_DIR_CONT_PATH"'",
-  "options": [ "bind", "nosuid", "shared" ]
+  "options": [ "rw", "shared", "rbind" ]
 }]'
 
 state::add '.mounts' '
@@ -39,7 +39,7 @@ state::add '.mounts' '
   "source": "'"$BRIDGE_FIFO_HOST_PATH"'",
   "type": "bind",
   "destination": "'"$BRIDGE_FIFO_CONT_PATH"'",
-  "options": [ "bind", "rw" ]
+  "options": [ "rbind", "rw" ]
 }]'
 
 # Inject stub.
@@ -50,15 +50,6 @@ state::add '.mounts' '
   "destination": "/usr/bin/squashfuse",
   "options": [ "bind" ]
 }]'
-
-log::echo "$(id)"
-log::echo "owner uid \"$SQUASHFUSED_DIR_HOST_PATH\": $(stat "$SQUASHFUSED_DIR_HOST_PATH")"
-
-# Start off the delegate daemon.
-nohup setsid /usr/local/libexec/squashfused/daemon "$DAEMON_ID" >/dev/null 2>&1 &
-DAEMON_PID=$!
-echo "$DAEMON_PID" >"$SQUASHFUSED_DIR_HOST_PATH/daemon_pid"
-log::echo "$(lsns -p $DAEMON_PID)"
 
 # DEBUG: log modified OCI runtime spec.
 log::echo "$(state::read '.')"
