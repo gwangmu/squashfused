@@ -1,0 +1,22 @@
+#!/bin/bash
+
+SERVER_DIR_PATH="/tmp/squashfused-server"
+SERVER_FIFO_PATH="$SERVER_DIR_PATH/spawn"
+
+DAEMON_DIR_HOST_PATH_PREFIX="/tmp/squashfused-"
+DAEMON_DIR_CONT_PATH="/squashfused"
+BRIDGE_DIR_CONT_PATH="$DAEMON_DIR_CONT_PATH/bridge_dir"
+BRIDGE_FIFO_CONT_PATH="$DAEMON_DIR_CONT_PATH/bridge_fifo"
+
+path::set_host() {
+  local DAEMON_ID=$1
+  export DAEMON_DIR_HOST_PATH="$DAEMON_DIR_HOST_PATH_PREFIX""$DAEMON_ID"
+  export DAEMON_PID_PATH="$DAEMON_DIR_HOST_PATH/daemon_pid"
+  export BRIDGE_DIR_HOST_PATH="$DAEMON_DIR_HOST_PATH/bridge_dir"
+  export BRIDGE_FIFO_HOST_PATH="$DAEMON_DIR_HOST_PATH/bridge_fifo"
+}
+
+path::container_id_to_daemon_id() {
+  local CONTAINER_ID=$1
+  echo "$SERVER_DIR_PATH/$CONTAINER_ID"
+}

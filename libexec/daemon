@@ -2,16 +2,14 @@
 
 set -eu
 source /usr/local/lib/squashfused/common.sh
+source /usr/local/lib/squashfused/path.sh
 
 log::file "/tmp/squashfused-daemon.log"
 log::echo "squashfused-daemon"
 
-DAEMON_ID=$1
-SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
-BRIDGE_DIR_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_dir"
-BRIDGE_FIFO_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_fifo"
+path::set_host "$1"
 
-log::echo "owner uid \"$SQUASHFUSED_DIR_HOST_PATH\": $(stat "$SQUASHFUSED_DIR_HOST_PATH")"
+log::echo "owner uid \"$DAEMON_DIR_HOST_PATH\": $(stat "$DAEMON_DIR_HOST_PATH")"
 
 log::echo "$(id)"
 while IFS= read -r ARGS <"$BRIDGE_FIFO_HOST_PATH"; do

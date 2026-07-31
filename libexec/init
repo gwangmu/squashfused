@@ -2,6 +2,7 @@
 
 set -eu
 source /usr/local/lib/squashfused/common.sh
+source /usr/local/lib/squashfused/path.sh
 
 log::file "/tmp/squashfused-init.log"
 log::echo "squashfused-init"
@@ -11,18 +12,17 @@ state::load
 # There is no container ID because, understandably, this is before `create`.
 # Instead, use a (pseudo-)hash of the root filesystem path.
 DAEMON_ID=$(cksum <<< $(state::read '.root.path') | cut -d' ' -f1)
+path::set_host "$DAEMON_ID"
 
 # Start off the delegate daemon.
-SQUASHFUSED_SERVER_DIR_PATH="/tmp/squashfused-server"
-SQUASHFUSED_SERVER_FIFO_PATH="$SQUASHFUSED_SERVER_DIR_PATH/spawn"
-echo "$DAEMON_ID" >"$SQUASHFUSED_SERVER_FIFO_PATH"
+echo "$DAEMON_ID" >"$SERVER_FIFO_PATH"
 
-SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
-SQUASHFUSED_DIR_CONT_PATH="/squashfused"
-BRIDGE_DIR_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_dir"
-BRIDGE_DIR_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_dir"
-BRIDGE_FIFO_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_fifo"
-BRIDGE_FIFO_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_fifo"
+while true; do
+  if [[ -f "$DAEMON_PID_PATH" ]]; then
+    break
+  fi
+  sleep 0.1
+done
 
 # Inject briedges.
 state::add '.mounts' '
@@ -38,7 +38,7 @@ state::add '.mounts' '
   "source": "'"$BRIDGE_FIFO_HOST_PATH"'",
   "type": "bind",
   "destination": "'"$BRIDGE_FIFO_CONT_PATH"'",
-  "options": [ "rbind", "rw" ]
+  "options": [ "rw", "rbind" ]
 }]'
 
 # Allow rootfs mount propagation.

@@ -2,25 +2,28 @@
 
 set -eu
 source /usr/local/lib/squashfused/common.sh
+source /usr/local/lib/squashfused/path.sh
 
 log::file "/tmp/squashfused-clean.log"
 log::echo "squashfused-clean"
 
 state::load
 
-SQUASHFUSED_MAP_DIR_PATH="/tmp/squashfused-map"
+CONTAINER_ID=$(state::read '.id')
+DAEMON_ID=$(cat $(path::container_id_to_daemon_id $CONTAINER_ID))
 
-DAEMON_ID=$(cat "$SQUASHFUSED_MAP_DIR_PATH/$(state::read '.id')")
-SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
-BRIDGE_DIR_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_dir"
+path::set_host "$DAEMON_ID"
 
-DAEMON_PID=$(cat "$SQUASHFUSED_DIR_HOST_PATH"/daemon_pid)
+log::echo "daemon id: $DAEMON_ID"
+log::echo "daemon pid path: $DAEMON_PID_PATH"
 
-log::echo "$(state::read '.')"
-log::echo "daemon: $DAEMON_PID"
-
-umount "$BRIDGE_DIR_HOST_PATH" || true
-rm -rf "$SQUASHFUSED_DIR_HOST_PATH"
-rm -f "$SQUASHFUSED_MAP_DIR_PATH/$(state::read '.id')"
+DAEMON_PID=$(cat "$DAEMON_PID_PATH")
+log::echo "daemon pid: $DAEMON_PID"
 
 kill -9 $DAEMON_PID
+
+log::echo "$(state::read '.')"
+
+umount "$BRIDGE_DIR_HOST_PATH" || true
+rm -rf "$DAEMON_DIR_HOST_PATH"
+rm -f "$SERVER_DIR_PATH/$CONTAINER_ID"
