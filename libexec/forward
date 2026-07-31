@@ -4,14 +4,14 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
-log::file "/tmp/squashfused-forward.log"
-log::echo "squashfused-forward"
-
 state::load
-
-log::echo $(whoami)
-
 DAEMON_ID=$(cksum <<< $(state::read '.root') | cut -d' ' -f1)
+
+# Set up logging.
+log::file "$SERVER_LOG_DIR_PATH/forward-$DAEMON_ID.log"
+log::echo "squashfused-forward-$DAEMON_ID"
+
+# Create container-id-to-daemon-id mapping.
 CONTAINER_ID=$(state::read '.id')
 echo "$DAEMON_ID" >"$(path::container_id_to_daemon_id $CONTAINER_ID)"
 

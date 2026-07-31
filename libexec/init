@@ -4,14 +4,15 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
-log::file "/tmp/squashfused-init.log"
-log::echo "squashfused-init"
-
-state::load
-
 # There is no container ID because, understandably, this is before `create`.
 # Instead, use a (pseudo-)hash of the root filesystem path.
+state::load
 DAEMON_ID=$(cksum <<< $(state::read '.root.path') | cut -d' ' -f1)
+
+# Set up logging.
+log::file "$SERVER_LOG_DIR_PATH/init-$DAEMON_ID.log"
+log::echo "squashfused-init-$DAEMON_ID"
+
 path::set_host "$DAEMON_ID"
 
 # Start off the delegate daemon.

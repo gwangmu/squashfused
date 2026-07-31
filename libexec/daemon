@@ -4,10 +4,13 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
-log::file "/tmp/squashfused-daemon.log"
-log::echo "squashfused-daemon"
+DAEMON_ID=$1
 
-path::set_host "$1"
+# Set up logging.
+log::file "$SERVER_LOG_DIR_PATH/daemon-$DAEMON_ID.log"
+log::echo "squashfused-daemon-$DAEMON_ID"
+
+path::set_host "$DAEMON_ID"
 
 log::echo "owner uid \"$DAEMON_DIR_HOST_PATH\": $(stat "$DAEMON_DIR_HOST_PATH")"
 

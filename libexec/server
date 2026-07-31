@@ -4,12 +4,15 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
-log::file "/tmp/squashfused-server.log"
-log::echo "squashfused-server"
-
-# Create a server directory and FIFO.
+# Provision the server directory. 
 mkdir -p "$SERVER_DIR_PATH"
+mkdir -p "$SERVER_MAP_DIR_PATH"
+mkdir -p "$SERVER_LOG_DIR_PATH"
 mkfifo "$SERVER_FIFO_PATH" || true
+
+# Set up logging.
+log::file "$SERVER_LOG_DIR_PATH/server.log"
+log::echo "squashfused-server"
 
 # Wait and spawn a daemon on demand.
 # ISSUE: sometimes it stucks at reading from the FIFO.

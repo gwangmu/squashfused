@@ -2,6 +2,8 @@
 
 SERVER_DIR_PATH="/tmp/squashfused-server"
 SERVER_FIFO_PATH="$SERVER_DIR_PATH/spawn"
+SERVER_MAP_DIR_PATH="$SERVER_DIR_PATH/map"
+SERVER_LOG_DIR_PATH="$SERVER_DIR_PATH/log"
 
 DAEMON_DIR_HOST_PATH_PREFIX="/tmp/squashfused-"
 DAEMON_DIR_CONT_PATH="/squashfused"
@@ -18,5 +20,5 @@ path::set_host() {
 
 path::container_id_to_daemon_id() {
   local CONTAINER_ID=$1
-  echo "$SERVER_DIR_PATH/$CONTAINER_ID"
+  echo "$SERVER_MAP_DIR_PATH/$CONTAINER_ID"
 }
