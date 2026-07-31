@@ -34,6 +34,8 @@ state::add '.mounts' '
   "options": [ "rw", "shared", "rbind" ]
 }]'
 
+state::add '.' '{ "rootfsPropagation": "shared" }'
+
 state::add '.mounts' '
 [{ 
   "source": "'"$BRIDGE_FIFO_HOST_PATH"'",

@@ -15,6 +15,7 @@ SQUASHFUSED_SERVER_FIFO_PATH="$SQUASHFUSED_SERVER_DIR_PATH/spawn"
 mkfifo "$SQUASHFUSED_SERVER_FIFO_PATH" || true
 
 # Wait and spawn a daemon on demand.
+# ISSUE: sometimes it stucks at reading from the FIFO.
 while IFS= read -r DAEMON_ID <"$SQUASHFUSED_SERVER_FIFO_PATH"; do
   SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
   SQUASHFUSED_DIR_CONT_PATH="/squashfused"
