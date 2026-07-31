@@ -25,7 +25,6 @@ BRIDGE_FIFO_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_fifo"
 BRIDGE_FIFO_CONT_PATH="$SQUASHFUSED_DIR_CONT_PATH/bridge_fifo"
 
 # Inject briedges.
-# Apparently, this SPECIFIC mount option actually works as a shared bind mount.
 state::add '.mounts' '
 [{ 
   "source": "'"$BRIDGE_DIR_HOST_PATH"'",
@@ -34,8 +33,6 @@ state::add '.mounts' '
   "options": [ "rw", "shared", "rbind" ]
 }]'
 
-state::add '.' '{ "rootfsPropagation": "shared" }'
-
 state::add '.mounts' '
 [{ 
   "source": "'"$BRIDGE_FIFO_HOST_PATH"'",
@@ -43,6 +40,9 @@ state::add '.mounts' '
   "destination": "'"$BRIDGE_FIFO_CONT_PATH"'",
   "options": [ "rbind", "rw" ]
 }]'
+
+# Allow rootfs mount propagation.
+state::add '.linux' '{ "rootfsPropagation": "shared" }'
 
 # Inject stub.
 state::add '.mounts' '
