@@ -54,11 +54,21 @@ state::add '.mounts' '
   "options": [ "bind" ]
 }]'
 
+## TODO: forward arguments to the real 'fusermount' when not '-u'.
 state::add '.mounts' '
 [{ 
   "source": "/usr/local/libexec/squashfused/stub/fusermount",
   "type": "bind",
   "destination": "/usr/bin/fusermount",
+  "options": [ "bind" ]
+}]'
+
+## TODO: only inject when unprivileged.
+state::add '.mounts' '
+[{ 
+  "source": "/usr/local/libexec/squashfused/stub/umount",
+  "type": "bind",
+  "destination": "/usr/bin/umount",
   "options": [ "bind" ]
 }]'
 

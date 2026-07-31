@@ -20,17 +20,19 @@ log() {
   echo "[$(date +%Y-%m-%d:%H:%M.%3N)] (id ${SQUASHFS_ID:-?}) ""$@" >>$LOG_CONT_PATH
 }
 
-DSTPATH=$2
-REAL_DSTPATH=$(realpath "$DSTPATH" || echo "")
+DSTPATH=$(echo "$2" | sed 's-/*$--g')
+LINK_DSTPATH=$(readlink "$DSTPATH" || echo "$DSTPATH")
+log "dstpath: $DSTPATH"
+log "link dstpath: $LINK_DSTPATH"
 
-if [[ ! -d "$REAL_DSTPATH" ]]; then
+if [[ ! -d "$LINK_DSTPATH" ]]; then
   echo "$0: '$2' is not a valid path."
   exit 1
 fi
 
 # Find a proper ID.
-if echo "$REAL_DSTPATH" | grep "$BRIDGE_DIR_CONT_PATH/.*.mount" >/dev/null 2>&1; then
-  __SQUASHFS_ID=${REAL_DSTPATH#$BRIDGE_DIR_CONT_PATH/}
+if echo "$LINK_DSTPATH" | grep "$BRIDGE_DIR_CONT_PATH/.*.mount" >/dev/null 2>&1; then
+  __SQUASHFS_ID=${LINK_DSTPATH#$BRIDGE_DIR_CONT_PATH/}
   SQUASHFS_ID=${__SQUASHFS_ID%.mount}
 else
   echo "$0: cannot derive a squashfs file id."

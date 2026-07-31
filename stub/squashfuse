@@ -4,6 +4,7 @@ set -eu
 
 BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
 BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
+DSTTOID_MAP_DIR_CONT_PATH="/tmp/squashfused-map"
 LOG_CONT_PATH="/tmp/squashfused.log"
 
 log() {
@@ -12,8 +13,8 @@ log() {
 
 # Find a proper ID.
 SQUASHFS_ID=0
-while [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID" ]]; do
-  (( SQUASHFS_ID = SQUASHFS_ID 1 ))
+while [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" ]]; do
+  (( SQUASHFS_ID = SQUASHFS_ID + 1 ))
 done
 
 log "squashfs id: $SQUASHFS_ID"
@@ -45,7 +46,12 @@ log "srcpath: $SRCPATH"
 log "dstpath: $DSTPATH"
 log "opts: $OPTS"
 
-if [[ -f "$SRCPATH" ]] && [[ -d "$DSTPATH" ]] && [[ -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
+if [[ -f "$SRCPATH" ]]; then
+  if [[ ! -d "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
+    echo "squashfuse-stub: mount destination either doesn't exist or isn't empty"
+    exit 1
+  fi
+
   log "mount"
 
   # Copy the requested SquashFS image to the bridge directory.
@@ -70,8 +76,9 @@ if [[ -f "$SRCPATH" ]] && [[ -d "$DSTPATH" ]] && [[ -z "$(find "$DSTPATH" -minde
   rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
 
   if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" ]]; then
-    rmdir "$DSTPATH"
-    ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$DSTPATH"
+    REAL_DSTPATH=$(realpath "$DSTPATH")
+    rmdir "$REAL_DSTPATH"
+    ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$REAL_DSTPATH"
   fi
 else
   log "forward"
@@ -80,7 +87,7 @@ else
   echo \
     '{                                    '\
     '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
-    '  "mode": "forward"                  '\
+    '  "mode": "forward",                 '\
     '  "args": "'"$@"'"                   '\
     '}                                    '\
     >"$BRIDGE_FIFO_CONT_PATH"
@@ -92,4 +99,8 @@ else
   cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
   cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
   rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
+
+  # Clean up leftover.
+  rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
+  rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" 
 fi
