@@ -8,9 +8,12 @@ log::echo "squashfused-forward"
 
 state::load
 
+log::echo $(whoami)
+
 # Create a mapping from the container ID to a daemon ID.
 SQUASHFUSED_MAP_DIR_PATH="/tmp/squashfused-map"
 mkdir -p "$SQUASHFUSED_MAP_DIR_PATH"
+chmod 0755 "$SQUASHFUSED_MAP_DIR_PATH"
 
 DAEMON_ID=$(cksum <<< $(state::read '.root') | cut -d' ' -f1)
 CONTAINER_ID=$(state::read '.id')

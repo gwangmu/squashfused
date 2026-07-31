@@ -1,9 +1,11 @@
 install:
 	mkdir -p /usr/share/containers/oci/hooks.d
 	mkdir -p /usr/local/libexec/squashfused
+	mkdir -p /usr/local/libexec/squashfused/stub
 	mkdir -p /usr/local/lib/squashfused
 	cp hooks/* /usr/share/containers/oci/hooks.d
 	cp libexec/* /usr/local/libexec/squashfused
+	cp stub/* /usr/local/libexec/squashfused/stub
 	cp lib/* /usr/local/lib/squashfused
 
 clean:

@@ -42,9 +42,23 @@ state::add '.mounts' '
   "options": [ "bind", "rw" ]
 }]'
 
+# Inject stub.
+state::add '.mounts' '
+[{ 
+  "source": "/usr/local/libexec/squashfused/stub/squashfuse",
+  "type": "bind",
+  "destination": "/usr/bin/squashfuse",
+  "options": [ "bind" ]
+}]'
+
+log::echo "$(id)"
+log::echo "owner uid \"$SQUASHFUSED_DIR_HOST_PATH\": $(stat "$SQUASHFUSED_DIR_HOST_PATH")"
+
 # Start off the delegate daemon.
 nohup setsid /usr/local/libexec/squashfused/daemon "$DAEMON_ID" >/dev/null 2>&1 &
-echo $! >"$SQUASHFUSED_DIR_HOST_PATH/daemon_pid"
+DAEMON_PID=$!
+echo "$DAEMON_PID" >"$SQUASHFUSED_DIR_HOST_PATH/daemon_pid"
+log::echo "$(lsns -p $DAEMON_PID)"
 
 # DEBUG: log modified OCI runtime spec.
 log::echo "$(state::read '.')"

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
+
+echo "$1" >"$BRIDGE_FIFO_CONT_PATH"

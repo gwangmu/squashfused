@@ -8,8 +8,14 @@ log::echo "squashfused-daemon"
 
 DAEMON_ID=$1
 SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
+BRIDGE_DIR_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_dir"
 BRIDGE_FIFO_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_fifo"
 
+log::echo "owner uid \"$SQUASHFUSED_DIR_HOST_PATH\": $(stat "$SQUASHFUSED_DIR_HOST_PATH")"
+
+log::echo "$(id)"
 while IFS= read -r ARGS <"$BRIDGE_FIFO_HOST_PATH"; do
   log::echo "$ARGS"
+  log::echo "squashfuse /home/gwangmu/test_shared/$ARGS \"$BRIDGE_DIR_HOST_PATH\""
+  log::echo "$(squashfuse /home/gwangmu/test_shared/$ARGS "$BRIDGE_DIR_HOST_PATH" 2>&1)"
 done

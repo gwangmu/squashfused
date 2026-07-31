@@ -9,14 +9,17 @@ log::echo "squashfused-clean"
 state::load
 
 SQUASHFUSED_MAP_DIR_PATH="/tmp/squashfused-map"
+
 DAEMON_ID=$(cat "$SQUASHFUSED_MAP_DIR_PATH/$(state::read '.id')")
 SQUASHFUSED_DIR_HOST_PATH="/tmp/squashfused-$DAEMON_ID"
+BRIDGE_DIR_HOST_PATH="$SQUASHFUSED_DIR_HOST_PATH/bridge_dir"
 
 DAEMON_PID=$(cat "$SQUASHFUSED_DIR_HOST_PATH"/daemon_pid)
 
 log::echo "$(state::read '.')"
 log::echo "daemon: $DAEMON_PID"
 
+umount "$BRIDGE_DIR_HOST_PATH" || true
 rm -rf "$SQUASHFUSED_DIR_HOST_PATH"
 rm -f "$SQUASHFUSED_MAP_DIR_PATH/$(state::read '.id')"
 
