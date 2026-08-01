@@ -1,2 +1,2 @@
 FROM ubuntu
-COPY test_image.squashfs /home/ubuntu/squashfs
+COPY *.sqfs /home/ubuntu
