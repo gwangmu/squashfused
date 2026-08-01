@@ -46,7 +46,9 @@ log "srcpath: $SRCPATH"
 log "dstpath: $DSTPATH"
 log "opts: $OPTS"
 
+# TODO: collect "<id>.{out,err,sqfs,mount}" to "<id>/{out,err,sqfs,mount}".
 if [[ -f "$SRCPATH" ]]; then
+  # TODO: print a warning instead if the '--no-link' option is set.
   if [[ ! -d "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
     echo "squashfuse-stub: mount destination either doesn't exist or isn't empty"
     exit 1
@@ -55,9 +57,14 @@ if [[ -f "$SRCPATH" ]]; then
   log "mount"
 
   # Copy the requested SquashFS image to the bridge directory.
+  # TODO: notify users that it's copying the image.
+  # TODO: don't copy the image if it's also visible to the host; 
+  #       in that case, just map it. Also add a '--no-copy' option.
   cp "$SRCPATH" "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs"
 
   # Request a squashfs mount to the delegate daemon.
+  # TODO: add a '--direct' option, which mounts the image directly to the bridge 
+  # directory. Only a single image can be mounted at a time.
   echo \
     '{                                    '\
     '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
@@ -71,11 +78,14 @@ if [[ -f "$SRCPATH" ]]; then
     sleep 0.1
   done
 
+  # TODO: notify users that the following is the stdout/stderr from the daemon.
   cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
   cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
   rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
 
   if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" ]]; then
+    # TODO: add a '--no-link' option, which doesn't create a link to the
+    # destination but prints the path to the actual mounted directory.
     REAL_DSTPATH=$(realpath "$DSTPATH")
     rmdir "$REAL_DSTPATH"
     ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$REAL_DSTPATH"
@@ -96,6 +106,7 @@ else
     sleep 0.1
   done
   
+  # TODO: notify users that the following is the stdout/stderr from the daemon.
   cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
   cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
   rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
