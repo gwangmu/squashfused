@@ -26,6 +26,7 @@ while [[ ! -f "$DAEMON_PID_PATH" ]]; do
 done
 
 # Inject briedges.
+# TODO: change the mount option 'shared' to 'slave' if the '--no-copy' option is set.
 state::add '.mounts' '
 [{ 
   "source": "'"$BRIDGE_DIR_HOST_PATH"'",
@@ -71,6 +72,11 @@ state::add '.mounts' '
   "destination": "/usr/bin/umount",
   "options": [ "bind" ]
 }]'
+
+# TODO: forward '--no-link' and '--direct' options to the stub via an envvar.
+# This envvar is okay to be user-controllable because changing the options via
+# envvar doesn't manipulate the daemon's behavior (=no host-side effect). It
+# only affects the **functionality** of the stub inside the container.
 
 # DEBUG: log modified OCI runtime spec.
 log::echo "$(state::read '.')"

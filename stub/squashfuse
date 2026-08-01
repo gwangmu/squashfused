@@ -63,8 +63,6 @@ if [[ -f "$SRCPATH" ]]; then
   cp "$SRCPATH" "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs"
 
   # Request a squashfs mount to the delegate daemon.
-  # TODO: add a '--direct' option, which mounts the image directly to the bridge 
-  # directory. Only a single image can be mounted at a time.
   echo \
     '{                                    '\
     '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
@@ -88,6 +86,8 @@ if [[ -f "$SRCPATH" ]]; then
     # destination but prints the path to the actual mounted directory.
     REAL_DSTPATH=$(realpath "$DSTPATH")
     rmdir "$REAL_DSTPATH"
+
+    # TODO: link/print the bridge directory path, if the '--direct' option is set.
     ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$REAL_DSTPATH"
   fi
 else
