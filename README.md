@@ -28,14 +28,14 @@ Installation requires `root` privileges one-time. Close this repository and, in 
 $ sudo make install
 ```
 
-Unless you're willing to reboot,
+Reboot the system to start the Squashfused server (systemd unit), or manually start it:
 
 ```
 $ systemctl --user daemon-reload
 $ systemctl --user restart squashfused-server.service
 ```
 
-Every source code is a script for now, so no need to build in advance.
+Once installed, Squashfused is available to _all_ accounts, including the LDAP-linked ones.
 
 ### How to Use
 
