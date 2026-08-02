@@ -55,6 +55,8 @@ $ ls mount_dir
 
 ### Demo
 
+After installation, go to the directory `demo` and run `make do_demo`.
+
 ## Mechanism
 
 1. (systemd unit) Create a "server" that spawns a "delegate daemon" later when requested.
