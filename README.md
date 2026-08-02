@@ -80,4 +80,8 @@ One hypothetical solution is to bind-mount the host's `squashfuse` inside the co
 
 ### Security Concern
 
+WIP: two main concerns: i) the "backdoor-ness" of the bridge directory, and ii) the possibility of host compromise via the vulnerabilities in `fusermount`, `squashfuse`, and `squashfused` itself. For i): mitigable with a combination of `--no-copy` and `--no-multiple-mounts`, and depending on the system, this backdoor is no greater than "frontdoors" (e.g., shared storage). For ii): the risk is still a tiny subset of `--privileged` or `--cap-add SYS_ADMIN`. `squashfused` vulnerabilities are unlikely because it's so small (and a script).
+
 ### Performance Concern
+
+WIP: one concern: copy overhead. Background: a SquashFS image should be copied to the "bridge directory" to make it visible to the host. This copying operation can take significant time depending on the image size. Mitigation: use `--no-copy` so that the image is simply mapped to the corresponding image on the host system (e.g., via shared storage, if any) instead of copying it.
