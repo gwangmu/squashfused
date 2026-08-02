@@ -20,6 +20,8 @@ Installation requires `root` privileges one-time. In the repository root directo
 $ sudo make install
 ```
 
+Every source code is a script for now, so no need to build in advance.
+
 ### How to Use
 
 Same as the `squashfuse` usage described [here](https://github.com/vasi/squashfuse). 
