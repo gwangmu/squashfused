@@ -8,7 +8,7 @@ By default, users cannot perform mount operations inside rootless containers bec
 
 However, at times, users inside rootless containers need to perform mount operations on the fly. A prime example is SquashFS images, which are commonly used for data archives. If they forgot to mount some SquashFS archives at container launch (which, in principle, they already can even if the container is rootless), they may want to mount additional archives at container runtime. But granting privilege to allow this at the cost of rootlessness seems too excessive.
 
-Squashfused was developed to _just_ enable the SquashFS mount (in a limited sense) without granting privilege. Basically, Squashfused spawns a host-side "delegate daemon" that forwards a SquashFS mount request from the rootless containers. The mount result is seen inside the containers via mount propagation, which will give users an "illusion" that they mounted the requested SquashFS image inside rootless containers.
+Squashfused was developed to _just_ enable the SquashFS mount (in a limited sense) without granting privilege. Basically, Squashfused spawns a host-side "delegate daemon" that forwards a SquashFS mount request from the "stub `squashfuse`" inside rootless containers. The mount result is seen inside the containers via mount propagation, which gives users the "illusion" that they mounted the requested SquashFS image inside rootless containers.
 
 ## Usage
 
