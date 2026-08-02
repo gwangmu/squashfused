@@ -28,8 +28,8 @@ Squashfused was developed to _just_ enable the SquashFS mount (in a limited sens
 $ sudo make install
 ```
 
-2. Reboot the system to start the Squashfused server (systemd unit), or manually start it:
-
+ 2. Reboot the system to start the Squashfused server (systemd unit), or manually start it by:
+   
 ```
 $ systemctl --user daemon-reload
 $ systemctl --user restart squashfused-server.service
