@@ -26,6 +26,13 @@ Installation requires `root` privileges one-time. In the repository root directo
 $ sudo make install
 ```
 
+Unless you're willing to reboot,
+
+```
+$ systemctl --user daemon-reload
+$ systemctl --user restart squashfused-server.service
+```
+
 Every source code is a script for now, so no need to build in advance.
 
 ### How to Use
