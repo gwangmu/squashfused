@@ -22,13 +22,13 @@ Squashfused was developed to _just_ enable the SquashFS mount (in a limited sens
 
 ### Install
 
-Installation requires `root` privileges one-time. Close this repository and, in the root directory,
+ 1. Clone this repository and run `make install` as `root`.
 
 ```
 $ sudo make install
 ```
 
-Reboot the system to start the Squashfused server (systemd unit), or manually start it:
+2. Reboot the system to start the Squashfused server (systemd unit), or manually start it:
 
 ```
 $ systemctl --user daemon-reload
