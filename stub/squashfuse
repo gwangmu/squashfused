@@ -87,7 +87,7 @@ if [[ -f "$SRCPATH" ]]; then
     REAL_DSTPATH=$(realpath "$DSTPATH")
     rmdir "$REAL_DSTPATH"
 
-    # TODO: link/print the bridge directory path, if the '--disable-multiple-mounts' option is set.
+    # TODO: link/print the bridge directory path, if the '--no-multiple-mounts' option is set.
     ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$REAL_DSTPATH"
   fi
 else
