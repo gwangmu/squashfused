@@ -33,7 +33,7 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       squashfuse $ARGS >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
       ;;
     mount)
-      # TODO: mount directly to the bridge directory path, if the '--direct' option is set.
+      # TODO: mount directly to the bridge directory path, if the '--disable-multiple-mounts' option is set.
       OPTS=$(jq::get "$CMD" '.opts')
       EXTRAS=$(jq::get "$CMD" '.extras')
       SRCPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.sqfs"
