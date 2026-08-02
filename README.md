@@ -1,6 +1,6 @@
 # Squashfused
 
-**Squashfused** allows unprivileged rootless Podman containers to mount SquashFS images at runtime through `squashfuse`. _No_ additional command-line option is required after installation.
+**Squashfused** allows unprivileged rootless Podman containers to mount SquashFS images at runtime through `squashfuse`. It uses a systemd unit and Podman hooks to do so. _No_ additional command-line option is required after installation.
 
 <img width="787" height="560" alt="demo" src="https://github.com/user-attachments/assets/e419217c-8776-4a26-86a0-bcf6a9c009ae" />
 
