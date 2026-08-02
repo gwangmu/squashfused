@@ -1,6 +1,6 @@
 # Squashfused
 
-**Squashfused** allows rootless Podman containers to mount SquashFS images through `squashfuse`. 
+**Squashfused** allows rootless Podman containers to mount SquashFS images at runtime through `squashfuse`. 
 
 ## Synopsys
 
