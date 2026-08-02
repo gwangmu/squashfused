@@ -96,3 +96,7 @@ WIP: two main concerns: i) the "backdoor-ness" of the bridge directory, and ii) 
 ### Performance Concern
 
 WIP: one concern: copy overhead. Background: a SquashFS image should be copied to the "bridge directory" to make it visible to the host. This copying operation can take significant time depending on the image size. Mitigation: use `--no-copy` so that the image is simply mapped to the corresponding image on the host system (e.g., via shared storage, if any) instead of copying it.
+
+### Merging to Podman
+
+WIP: shouldn't be a problem only if: i) the "delegate daemon" can be spawned on the host mount namespace - this will obviate the systemd unit, ii) there is any way to make the symlink mount destination as seamless as normal bind mounts (or if it's okay to have symlinks), and iii) it's only allowed to be enabled if the container is rootless and unprivileged.
