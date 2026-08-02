@@ -22,7 +22,7 @@ Squashfused was developed to _just_ enable the SquashFS mount (in a limited sens
 
 ### Install
 
-Installation requires `root` privileges one-time. In the repository root directory,
+Installation requires `root` privileges one-time. Close this repository and, in the root directory,
 
 ```
 $ sudo make install
