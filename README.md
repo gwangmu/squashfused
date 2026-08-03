@@ -61,7 +61,9 @@ $ ls mount_dir
 (empty)
 ```
 
-**Note: The container launch doesn't require any special option.** Demo is also available in the directory `demo`; run `make do_demo` there after installation.
+**Note: The container launch doesn't require any special option.** 
+
+Demo is also available in the directory `demo`; run `make do_demo` there after installation.
 
 ## See Also
 
