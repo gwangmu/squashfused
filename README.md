@@ -58,7 +58,7 @@ $ ls mount_dir
 (empty)
 ```
 
-Notice that the rootless container can be launched _without any special option_.
+Notice that the rootless container is launched _without any special option_.
 
 ### Demo
 
