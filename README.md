@@ -4,7 +4,7 @@
 
 <img width="787" height="560" alt="demo" src="https://github.com/user-attachments/assets/e419217c-8776-4a26-86a0-bcf6a9c009ae" />
 
-"Squashfused" almost sounds like a new Linux kernel vulnerability, but keep calm. It's a tool, not a vulnerability (or not using one, either). It was supposed to be short for "Squashfuse-delegate." You can pronounce it however you prefer: "Squashfused" or "Squashfuse-Dee."
+"Squashfused" almost sounds like a new Linux kernel vulnerability, but keep calm. It's a tool, not a vulnerability (and not using one, either). It was supposed to be short for "Squashfuse-delegate." You can pronounce it however you prefer: "Squashfused" or "Squashfuse-Dee."
 
 ## Synopsis
 
