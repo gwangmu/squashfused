@@ -39,11 +39,7 @@ Once installed, Squashfused is available to _all_ accounts, including the LDAP-l
 
 ### How to Use
 
-Same as the `squashfuse` usage described [here](https://github.com/vasi/squashfuse). 
-
-### Example
-
-The rootless container can be launched _without any special option_. Inside the container,
+Same as the `squashfuse` usage described [here](https://github.com/vasi/squashfuse). For example, inside the container,
 
 ```
 $ ls
@@ -61,6 +57,8 @@ $ umount mount_dir    # or 'fusermount -u mount_dir'.
 $ ls mount_dir
 (empty)
 ```
+
+Notice that the rootless container can be launched _without any special option_.
 
 ### Demo
 
