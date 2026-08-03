@@ -63,7 +63,7 @@ $ ls mount_dir
 
 **Note: The container launch doesn't require any special option.** 
 
-Demo is also available in the directory `demo`; run `make do_demo` there after installation.
+A demo is also available; in the `demo` directory, run `make do_demo` after installation.
 
 ## See Also
 
