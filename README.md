@@ -21,7 +21,7 @@ Squashfused was developed to _just_ enable the SquashFS mount (in a limited sens
  - Your host system should have: `squashfuse` and `jq`.
  - You should launch containers via `podman`; unfortunately, other OCI container engines, like Docker, are not supported.
  - Your host system should be `systemd`-based.
- - Your host system and container image should have `bash` (requirement eliminable in the future).
+ - Your host system and container image should have `bash`. (requirement droppable in the future)
 
 ### Install
 
