@@ -4,6 +4,8 @@
 
 <img width="787" height="560" alt="demo" src="https://github.com/user-attachments/assets/e419217c-8776-4a26-86a0-bcf6a9c009ae" />
 
+"Squashfused" almost sounds like a new Linux kernel vulnerability, but keep calm. It's a tool, not a vulnerability. It was supposed to be short for "Squashfuse-delegate."
+
 ## Synopsis
 
 By default, users cannot perform mount operations inside rootless containers because they require a `SYS_ADMIN` capability. This capability can be granted via `--cap-add SYS_ADMIN` (or, even more radically, `--privileged`) in the container launch command, but doing so enables container breakout and/or the host system compromise, defeating the purpose of _rootless_ containers.
