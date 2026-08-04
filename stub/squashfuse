@@ -84,7 +84,7 @@ if [[ -f "$SRCPATH" ]]; then
   if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" ]]; then
     # TODO: add a '--no-link' option, which doesn't create a link to the
     # destination but prints the path to the actual mounted directory.
-    REAL_DSTPATH=$(realpath "$DSTPATH")
+    REAL_DSTPATH=$(readlink -f "$DSTPATH")
     rmdir "$REAL_DSTPATH"
 
     # TODO: link/print the bridge directory path, if the '--no-multiple-mounts' option is set.
