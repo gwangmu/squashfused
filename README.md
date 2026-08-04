@@ -67,5 +67,5 @@ A demo is also available; in the `demo` directory, run `make do_demo` after inst
 
 ## See Also
 
- - [Internal mechanism](./docs/mechanism.md)
+ - [Mechanism](./docs/mechanism.md)
  - [Discussion](./docs/discussion.md)
