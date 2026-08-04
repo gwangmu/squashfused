@@ -21,7 +21,7 @@ log() {
 }
 
 DSTPATH=$(echo "$2" | sed 's-/*$--g')
-LINK_DSTPATH=$(readlink "$DSTPATH" || echo "$DSTPATH")
+LINK_DSTPATH=$(readlink -f "$DSTPATH" || echo "$DSTPATH")
 log "dstpath: $DSTPATH"
 log "link dstpath: $LINK_DSTPATH"
 
