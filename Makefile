@@ -9,6 +9,7 @@ install:
 	cp stub/* /usr/local/libexec/squashfused/stub
 	cp lib/* /usr/local/lib/squashfused
 	cp unit/* /etc/systemd/user
+	find /usr/local/libexec/squashfused -type f -exec sed -i 's/@SQUASHFUSED_ENVS@/'"$(SQUASHFUSED_ENVS)"'/g' {} \;
 
 clean:
 	rm -rf /usr/share/containers/oci/hooks.d/squashfused-*

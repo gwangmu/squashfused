@@ -17,7 +17,7 @@ state::load() {
 
 state::read() {
   local field=$1
-  echo "$CONTAINER_STATE" | jq -r "$field"
+  echo "$CONTAINER_STATE" | jq -rc "$field"
 }
 
 state::add() {

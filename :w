@@ -2,7 +2,7 @@
 
 set -eu
 
-OPT_NO_COPY=${SQUASHFUSED_NO_COPY:-0}
+OPT_NO_COPY=${SQUASHFUSED_NO_COPY:-false}
 
 BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
 BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
@@ -34,9 +34,9 @@ for ARG in "$@"; do
       ;;
     *)
       if [[ -z "$SRCPATH" ]]; then
-        SRCPATH="$(readlink -f $ARG)"
+        SRCPATH="$ARG"
       elif [[ -z "$DSTPATH" ]]; then
-        DSTPATH="$(readlink -f $ARG)"
+        DSTPATH="$ARG"
       else
         EXTRAS="$EXTRAS $ARG"
       fi
@@ -48,21 +48,21 @@ log "srcpath: $SRCPATH"
 log "dstpath: $DSTPATH"
 log "opts: $OPTS"
 
-echo "squashfuse-stub: '$SRCPATH' to '$DSTPATH'"
-
 # TODO: collect "<id>.{out,err,sqfs,mount}" to "<id>/{out,err,sqfs,mount}".
 if [[ -f "$SRCPATH" ]]; then
   # TODO: print a warning instead if the '--no-link' option is set.
   if [[ ! -d "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
-    echo "squashfuse-stub: error: mount destination either doesn't exist or isn't empty"
+    echo "--- from stub ---"
+    echo "error: mount destination either doesn't exist or isn't empty"
     exit 1
   fi
 
   log "mount"
 
-  if [[ "$OPT_NO_COPY" == "0" ]]; then
+  if [[ "$OPT_NO_COPY" == "false" ]]; then
     # Copy the requested SquashFS image to the bridge directory.
-    echo "squashfuse-stub: copying image..."
+    echo "-- from stub --"
+    echo "info: copying image..."
     cp "$SRCPATH" "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs"
   fi
 
@@ -72,8 +72,9 @@ if [[ -f "$SRCPATH" ]]; then
     '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
     '  "mode": "mount",                   '\
     '  "opts": "'"$OPTS"'",               '\
-    '  "extras": "'"$EXTRAS"'",           '\
-    '  "srcpath": "'"$(readlink -f "$SRCPATH")"'"'\
+    '  "extras": "'"$EXTRAS"'"            '\
+    '  "should_map": "'"$OPT_NO_COPY'",   '\
+    '  "srcpath": "'"$(readlink -f "$SRCPATH")'"'\
     '}                                    '\
     >"$BRIDGE_FIFO_CONT_PATH"
 
@@ -82,11 +83,13 @@ if [[ -f "$SRCPATH" ]]; then
   done
 
   if [[ -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out" ]]; then
-    cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out" | sed 's/^/squashfuse: /g'
+    echo "-- from squashfuse --"
+    cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
   fi 
 
   if [[ -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" ]]; then
-    cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" | sed 's/^/squashfuse: /g' >&2
+    echo "-- from squashfuse --" >&2
+    cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
   fi 
 
   rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
@@ -117,11 +120,13 @@ else
   done
   
   if [[ -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out" ]]; then
-    cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out" | sed 's/^/squashfuse: /g'
+    echo "-- from squashfuse --"
+    cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
   fi
 
   if [[ -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" ]]; then
-    cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" | sed 's/^/squashfuse: /g' >&2
+    echo "-- from squashfuse --" >&2
+    cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
   fi
 
   rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"

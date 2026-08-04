@@ -17,6 +17,7 @@ path::set_host "$DAEMON_ID"
 
 # Start off the delegate daemon.
 echo "$DAEMON_ID" >"$SERVER_FIFO_PATH"
+echo "$(state::read '.mounts')" >"$SERVER_FIFO_PATH"
 
 # Unidirectional communication (i.e., waiting for the server's response via FIFO)
 # could open up the possibility of race conditions down the road.
@@ -77,6 +78,9 @@ state::add '.mounts' '
 # This envvar is okay to be user-controllable because changing the options via
 # envvar doesn't manipulate the daemon's behavior (=no host-side effect). It
 # only affects the **functionality** of the stub inside the container.
+for SQUASHFUSED_ENV in @SQUASHFUSED_ENVS@; do
+  state::add '.process.env' "[ \"SQUASHFUSED_$SQUASHFUSED_ENV\" ]" 
+done
 
 # DEBUG: log modified OCI runtime spec.
 log::echo "$(state::read '.')"

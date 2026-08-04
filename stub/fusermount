@@ -64,5 +64,5 @@ mkdir "$DSTPATH"
 # Clean up leftover.
 rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
 rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err"
-rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs"
+rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs" >/dev/null 2>&1 || true
 rmdir "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount"
