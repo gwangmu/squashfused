@@ -3,6 +3,7 @@
 set -eu
 
 OPT_NO_COPY=${SQUASHFUSED_NO_COPY:-0}
+OPT_NO_LINK=${SQUASHFUSED_NO_LINK:-0}
 
 BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
 BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
@@ -52,13 +53,14 @@ echo "squashfuse-stub: '$SRCPATH' to '$DSTPATH'"
 
 # TODO: collect "<id>.{out,err,sqfs,mount}" to "<id>/{out,err,sqfs,mount}".
 if [[ -f "$SRCPATH" ]]; then
-  # TODO: print a warning instead if the '--no-link' option is set.
-  if [[ ! -d "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
-    echo "squashfuse-stub: error: mount destination either doesn't exist or isn't empty"
-    exit 1
-  fi
-
   log "mount"
+
+  if [[ ! -d "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
+    echo "squashfuse-stub: nonexistent or non-empty mount destination."
+    if [[ "$OPT_NO_LINK" != "1" ]]; then
+      exit 1
+    fi
+  fi
 
   if [[ "$OPT_NO_COPY" == "0" ]]; then
     # Copy the requested SquashFS image to the bridge directory.
@@ -81,6 +83,7 @@ if [[ -f "$SRCPATH" ]]; then
     sleep 0.1
   done
 
+  # Print outputs from the actual squashfuse.
   if [[ -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out" ]]; then
     cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out" | sed 's/^/squashfuse: /g'
   fi 
@@ -89,16 +92,30 @@ if [[ -f "$SRCPATH" ]]; then
     cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" | sed 's/^/squashfuse: /g' >&2
   fi 
 
-  rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
+  # Send ack.
+  echo \
+    '{                                    '\
+    '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+    '  "mode": "ack"                      '\
+    '}                                    '\
+    >"$BRIDGE_FIFO_CONT_PATH"
 
+  # If the mount was successful, create a link to it.
   if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" ]]; then
     # TODO: add a '--no-link' option, which doesn't create a link to the
     # destination but prints the path to the actual mounted directory.
     REAL_DSTPATH=$(readlink -f "$DSTPATH")
     rmdir "$REAL_DSTPATH"
 
-    # TODO: link/print the bridge directory path, if the '--no-multiple-mounts' option is set.
     ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$REAL_DSTPATH"
+  else
+    # Send cleanup.
+    echo \
+      '{                                    '\
+      '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+      '  "mode": "cleanup"                  '\
+      '}                                    '\
+      >"$BRIDGE_FIFO_CONT_PATH"
   fi
 else
   log "forward"
@@ -115,7 +132,8 @@ else
   while [[ ! -f "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done" ]]; do
     sleep 0.1
   done
-  
+
+  # Print outputs from the actual squashfuse.
   if [[ -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out" ]]; then
     cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out" | sed 's/^/squashfuse: /g'
   fi
@@ -124,9 +142,19 @@ else
     cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" | sed 's/^/squashfuse: /g' >&2
   fi
 
-  rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
+  # Send ack.
+  echo \
+    '{                                    '\
+    '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+    '  "mode": "ack"                      '\
+    '}                                    '\
+    >"$BRIDGE_FIFO_CONT_PATH"
 
-  # Clean up leftover.
-  rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
-  rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" 
+  # Send cleanup.
+  echo \
+    '{                                    '\
+    '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+    '  "mode": "cleanup"                  '\
+    '}                                    '\
+    >"$BRIDGE_FIFO_CONT_PATH"
 fi

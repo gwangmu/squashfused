@@ -12,6 +12,7 @@ jq::get() {
   echo "$1" | jq -r "$2"
 }
 
+# Parse Squashfused options.
 declare -A SQUASHFUSED_OPTS
 for SQUASHFUSED_ENV in $SQUASHFUSED_ENVS; do
   _ENV_NAME=${SQUASHFUSED_ENV%=*}
@@ -55,7 +56,6 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       squashfuse $ARGS >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
       ;;
     mount)
-      # TODO: mount directly to the bridge directory path, if the '--no-multiple-mounts' option is set.
       OPTS=$(jq::get "$CMD" '.opts')
       EXTRAS=$(jq::get "$CMD" '.extras')
       SRCPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.sqfs"
@@ -79,12 +79,26 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
         done
       fi
 
-      squashfuse $OPTS "$SRCPATH" "$DSTPATH" $EXTRAS >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
+      if ! squashfuse $OPTS "$SRCPATH" "$DSTPATH" $EXTRAS >"$STDOUT_PATH" 2>"$STDERR_PATH"; then
+        rmdir "$DSTPATH"
+      fi 
       ;;
     unmount)
       MOUNT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount"
       umount "$MOUNT_PATH" >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
+      ;;
+    ack)
+      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done"
+      ;;
+    cleanup)
+      rmdir "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount" || true
+      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.sqfs" >/dev/null 2>&1 || true
+      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out"
+      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.err" 
+      ;;
   esac
 
-  touch "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done"
+  if [[ "$MODE" != "ack" ]] && [[ "$MODE" != "cleanup" ]]; then
+    touch "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done"
+  fi
 done

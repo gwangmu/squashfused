@@ -62,6 +62,7 @@ rm "$DSTPATH"
 mkdir "$DSTPATH"
 
 # Clean up leftover.
+# TODO: replace this with 'cleanup'.
 rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
 rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err"
 rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs" >/dev/null 2>&1 || true

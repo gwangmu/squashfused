@@ -4,6 +4,16 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
+SQUASHFUSED_ENVS=@SQUASHFUSED_ENVS@
+
+# Parse Squashfused options.
+declare -A SQUASHFUSED_OPTS
+for SQUASHFUSED_ENV in $SQUASHFUSED_ENVS; do
+  _ENV_NAME=${SQUASHFUSED_ENV%=*}
+  _ENV_VALUE=${SQUASHFUSED_ENV#*=}
+  SQUASHFUSED_OPTS[$_ENV_NAME]=$_ENV_VALUE
+done
+
 # There is no container ID because, understandably, this is before `create`.
 # Instead, use a (pseudo-)hash of the root filesystem path.
 state::load
@@ -26,14 +36,19 @@ while [[ ! -f "$DAEMON_PID_PATH" ]]; do
   sleep 0.1
 done
 
+# If "NO_COPY" was set, there is no reason the bridge directory should be read-write.
+BRIDGE_DIR_WRITE_PERM="rw"
+if [[ ${SQUASHFUSED_OPTS[NO_COPY]:-0} == "1" ]]; then
+  BRIDGE_DIR_WRITE_PERM="ro"
+fi
+
 # Inject briedges.
-# TODO: change the mount option 'shared' to 'slave' if the '--no-copy' option is set.
 state::add '.mounts' '
 [{ 
   "source": "'"$BRIDGE_DIR_HOST_PATH"'",
   "type": "bind",
   "destination": "'"$BRIDGE_DIR_CONT_PATH"'",
-  "options": [ "rw", "shared", "rbind" ]
+  "options": [ "'"$BRIDGE_DIR_WRITE_PERM"'", "slave", "rbind" ]
 }]'
 
 state::add '.mounts' '
@@ -74,11 +89,7 @@ state::add '.mounts' '
   "options": [ "bind" ]
 }]'
 
-# TODO: forward '--no-link' and '--direct' options to the stub via an envvar.
-# This envvar is okay to be user-controllable because changing the options via
-# envvar doesn't manipulate the daemon's behavior (=no host-side effect). It
-# only affects the **functionality** of the stub inside the container.
-for SQUASHFUSED_ENV in @SQUASHFUSED_ENVS@; do
+for SQUASHFUSED_ENV in $SQUASHFUSED_ENVS; do
   state::add '.process.env' "[ \"SQUASHFUSED_$SQUASHFUSED_ENV\" ]" 
 done
 
