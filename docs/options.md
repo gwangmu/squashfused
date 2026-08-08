@@ -1,6 +1,6 @@
 # Options
 
-A handful of Squashfused options can be set during installation via a Makefile argument `OPTS`.
+Squashfused options can be set during installation via the `OPTS` Makefile argument.
 
 ```
 $ sudo make install OPTS=<squashfused_options>
