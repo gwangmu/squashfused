@@ -1,17 +1,18 @@
 #!/bin/bash
 
-set -eu
-
 OPT_NOLINK=${SQUASHFUSED_NOLINK:-0}
+OPT_CONSTDST=$(readlink -f "${SQUASHFUSED_CONSTDST:-}" || echo "")
 
-if [[ "$1" != "-u" ]]; then
-  echo "$0: only '-u' is supported."
+if [[ "${1:-}" != "-u" ]]; then
+  echo "fusermount-stub: error: only '-u' is supported."
   exit 1
 fi
 
-if [[ -z "$2" ]]; then
-  echo "$0: no target destination path provided."
-  exit 1
+if [[ -z "${2:-}" ]]; then
+  if [[ -z "$OPT_CONSTDST" ]] || [[ "$OPT_NOLINK" == "0" ]]; then
+    echo "fusermount-stub: error: no target destination path provided."
+    exit 1
+  fi
 fi
 
 set -eu
@@ -24,26 +25,48 @@ log() {
   echo "[$(date +%Y-%m-%d:%H:%M.%3N)] (id ${SQUASHFS_ID:-?}) ""$@" >>$LOG_CONT_PATH
 }
 
-DSTPATH=$(echo "$2" | sed 's-/*$--g')
-LINK_DSTPATH=$(readlink -f "$DSTPATH" || echo "$DSTPATH")
-log "dstpath: $DSTPATH"
-log "link dstpath: $LINK_DSTPATH"
+if [[ -z "$OPT_CONSTDST" ]] || [[ "$OPT_NOLINK" == "0" ]]; then
+  DSTPATH=$(echo "$2" | sed 's-/*$--g')
+  LINK_DSTPATH=$(readlink -f "$DSTPATH" || echo "$DSTPATH")
+  log "dstpath: $DSTPATH"
+  log "link dstpath: $LINK_DSTPATH"
 
-if [[ ! -d "$LINK_DSTPATH" ]]; then
-  echo "$0: '$2' is not a valid path."
-  exit 1
+  if [[ ! -d "$LINK_DSTPATH" ]]; then
+    echo "fusermount-stub: error: '$2' is not a valid path."
+    exit 1
+  fi
 fi
 
 # Find a proper ID.
-if echo "$LINK_DSTPATH" | grep "$BRIDGE_DIR_CONT_PATH/[0-9]\+/mount" >/dev/null 2>&1; then
+if [[ -n "$OPT_CONSTDST" ]]; then
+  if [[ -v LINK_DSTPATH ]] && [[ "$LINK_DSTPATH" != "$OPT_CONSTDST" ]]; then
+    echo "fusermount-stub: error: 'constdst' is set. mountpoint should be the same as 'constdst'."
+    exit 1
+  fi
+
+  if [[ -z $(find "$OPT_CONSTDST" -mindepth 1 -maxdepth 1) ]]; then
+    echo "fusermount-stub: error: 'constdst' is set. seems not mounted."
+    exit 1
+  fi
+
+  # If 'constdst' is set, 'SQUASHFS_ID' must be 0.
+  SQUASHFS_ID="0"
+elif echo "$LINK_DSTPATH" | grep "$BRIDGE_DIR_CONT_PATH/[0-9]\+/mount" >/dev/null 2>&1; then
   __SQUASHFS_ID=${LINK_DSTPATH#$BRIDGE_DIR_CONT_PATH/}
   SQUASHFS_ID=${__SQUASHFS_ID%/mount}
 else
-  echo "$0: cannot derive a squashfs file id."
+  echo "fusermount-stub: error: cannot derive a squashfs file id."
   exit 1
 fi
 
 log "squashfs id: $SQUASHFS_ID"
+
+if [[ "$OPT_NOLINK" == "0" ]]; then
+  if [[ -d "$DSTPATH" ]] && [[ ! -h "$DSTPATH" ]]; then
+    # Assume 'DSTPATH' is directly given a directory path.
+    DSTPATH=$(cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/link")
+  fi
+fi
 
 # Request unmount to the daemon.
 echo \
@@ -57,8 +80,8 @@ while [[ ! -f "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/done" ]]; do
   sleep 0.1
 done
 
-cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/out"
-cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/err" >&2
+cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/out" | sed 's/^/fusermount: /g'
+cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/err" | sed 's/^/fusermount: /g' >&2
 
 # Fix the destination mount point.
 if [[ "$OPT_NOLINK" == "0" ]]; then

@@ -4,6 +4,7 @@ set -eu
 
 OPT_NOCOPY=${SQUASHFUSED_NOCOPY:-0}
 OPT_NOLINK=${SQUASHFUSED_NOLINK:-0}
+OPT_CONSTDST=$(readlink -f "${SQUASHFUSED_CONSTDST:-}" || echo "")
 
 BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
 BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
@@ -35,9 +36,9 @@ for ARG in "$@"; do
       ;;
     *)
       if [[ -z "$SRCPATH" ]]; then
-        SRCPATH="$(readlink -f $ARG)"
+        SRCPATH="$ARG"
       elif [[ -z "$DSTPATH" ]]; then
-        DSTPATH="$(readlink -f $ARG)"
+        DSTPATH="$ARG"
       else
         EXTRAS="$EXTRAS $ARG"
       fi
@@ -49,15 +50,19 @@ log "srcpath: $SRCPATH"
 log "dstpath: $DSTPATH"
 log "opts: $OPTS"
 
-# TODO: collect "<id>.{out,err,sqfs,mount}" to "<id>/{out,err,sqfs,mount}".
 if [[ -f "$SRCPATH" ]]; then
   log "mount"
 
   if [[ "$OPT_NOLINK" != "1" ]]; then
-    if [[ ! -d "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
+    if [[ ! -d "$DSTPATH" ]] || [[ -L "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
       echo "squashfuse-stub: error: nonexistent or non-empty mount destination."
       exit 1
     fi
+  fi
+
+  if [[ -n "$OPT_CONSTDST" ]] && [[ -n $(find "$OPT_CONSTDST" -mindepth 1 -maxdepth 1) ]]; then
+    echo "squashfuse-stub: error: 'constdst' is set. seems mounted."
+    exit 1
   fi
 
   _MOUNT_ECHO_PREFIX=""
@@ -80,7 +85,8 @@ if [[ -f "$SRCPATH" ]]; then
     '  "mode": "mount",                   '\
     '  "opts": "'"$OPTS"'",               '\
     '  "extras": "'"$EXTRAS"'",           '\
-    '  "srcpath": "'"$(readlink -f "$SRCPATH")"'"'\
+    '  "srcpath": "'"$(readlink -f "$SRCPATH")"'",'\
+    '  "dstpath": "'"$(realpath -s "$DSTPATH" 2>/dev/null || true)"'"'\
     '}                                    '\
     >"$BRIDGE_FIFO_CONT_PATH"
 
@@ -99,13 +105,20 @@ if [[ -f "$SRCPATH" ]]; then
 
   # If the mount was successful, create a link to it.
   if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount" ]]; then
+    MOUNT_DSTPATH="$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount"
+    if [[ -n "$OPT_CONSTDST" ]]; then
+      MOUNT_DSTPATH="$OPT_CONSTDST"
+    fi
+    
     # Create a link if 'nolink' is unset, otherwise report the mountpoint.
     if [[ "$OPT_NOLINK" != "1" ]]; then
       REAL_DSTPATH=$(readlink -f "$DSTPATH")
-      rmdir "$REAL_DSTPATH"
-      ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount" "$REAL_DSTPATH"
+      if [[ -z "$OPT_CONSTDST" ]] || [[ "$REAL_DSTPATH" != "$OPT_CONSTDST" ]]; then
+        rmdir "$REAL_DSTPATH"
+        ln -s "$MOUNT_DSTPATH" "$REAL_DSTPATH"
+      fi
     else
-      echo "squashfuse-stub: mounted to '"$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount"'."
+      echo "squashfuse-stub: mounted to '"$MOUNT_DSTPATH"'."
     fi
 
     # Send ack.

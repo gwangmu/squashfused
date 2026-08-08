@@ -16,6 +16,7 @@ path::set_host() {
   export DAEMON_PID_PATH="$DAEMON_DIR_HOST_PATH/daemon_pid"
   export BRIDGE_DIR_HOST_PATH="$DAEMON_DIR_HOST_PATH/bridge_dir"
   export BRIDGE_FIFO_HOST_PATH="$DAEMON_DIR_HOST_PATH/bridge_fifo"
+  export CONST_DST_HOST_PATH="$DAEMON_DIR_HOST_PATH/const_dst"
 }
 
 path::container_id_to_daemon_id() {

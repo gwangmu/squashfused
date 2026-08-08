@@ -55,6 +55,16 @@ state::add '.mounts' '
   "options": [ "rw", "rbind" ]
 }]'
 
+if [[ -v SQUASHFUSED_OPTS[constdst] ]]; then
+  state::add '.mounts' '
+  [{ 
+    "source": "'"$CONST_DST_HOST_PATH"'",
+    "type": "bind",
+    "destination": "'"${SQUASHFUSED_OPTS[constdst]}"'",
+    "options": [ "ro", "slave", "rbind" ]
+  }]'
+fi
+
 # Allow rootfs mount propagation.
 state::add '.linux' '{ "rootfsPropagation": "shared" }'
 

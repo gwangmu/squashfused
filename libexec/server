@@ -16,6 +16,10 @@ log::echo "squashfused-server"
 
 SQUASHFUSED_OPTS_STR=@SQUASHFUSED_OPTS_STR@
 
+# Get Squashfused options.
+declare -A SQUASHFUSED_OPTS
+opt::get SQUASHFUSED_OPTS "$SQUASHFUSED_OPTS_STR"
+
 # Wait and spawn a daemon on demand.
 # ISSUE: sometimes it stucks at reading from the FIFO.
 while IFS= read -r DAEMON_ID <"$SERVER_FIFO_PATH"; do
@@ -28,6 +32,11 @@ while IFS= read -r DAEMON_ID <"$SERVER_FIFO_PATH"; do
   # Create a bridge directory and FIFO.
   mkdir -p "$BRIDGE_DIR_HOST_PATH"
   mkfifo "$BRIDGE_FIFO_HOST_PATH"
+
+  # If 'constdst' is set, create a constant destiation directory.
+  if [[ -v SQUASHFUSED_OPTS[constdst] ]]; then
+    mkdir -p "$CONST_DST_HOST_PATH"
+  fi
 
   # Create a delegate daemon.
   nohup setsid /usr/local/libexec/squashfused/daemon "$DAEMON_ID" "$SQUASHFUSED_OPTS_STR" "$MOUNT_MAP_RAW" >/dev/null 2>&1 &

@@ -56,9 +56,7 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
     mount)
       OPTS=$(jq::get "$CMD" '.opts')
       EXTRAS=$(jq::get "$CMD" '.extras')
-      SRCPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/sqfs"
-      DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
-      mkdir "$DSTPATH"
+      LN_DSTPATH=$(jq::get "$CMD" '.dstpath')
 
       if [[ -v SQUASHFUSED_OPTS[nocopy] ]]; then
         _SRCPATH=$(jq::get "$CMD" '.srcpath')
@@ -74,14 +72,34 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
             SRCPATH="${MOUNT_MAP[$MOUNT_DSTPATH]}/$(echo "$_SRCPATH" | sed "s@^$MOUNT_DSTPATH@@g")"
           fi
         done
+      else
+        SRCPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/sqfs"
+      fi
+
+      # 'PROT_DSTPATH' is a protocol destination path, whose existence signals
+      # a successful mount. When 'constdst' is unset (by default), 
+      # this is the same as the actual mount destionation path.
+      PROT_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
+      mkdir "$PROT_DSTPATH"
+
+      if [[ -v SQUASHFUSED_OPTS[constdst] ]]; then
+        DSTPATH="$CONST_DST_HOST_PATH"
+      else
+        DSTPATH="$PROT_DSTPATH"
       fi
 
       if ! squashfuse $OPTS "$SRCPATH" "$DSTPATH" $EXTRAS >"$STDOUT_PATH" 2>"$STDERR_PATH"; then
-        rmdir "$DSTPATH"
+        rmdir "$PROT_DSTPATH"
       fi 
+
+      echo "$LN_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
       ;;
     unmount)
       MOUNT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
+      if [[ -v SQUASHFUSED_OPTS[constdst] ]]; then
+        MOUNT_PATH="$CONST_DST_HOST_PATH"
+      fi
+      
       umount "$MOUNT_PATH" >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
       ;;
     ack)
