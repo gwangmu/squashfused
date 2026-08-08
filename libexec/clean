@@ -27,7 +27,7 @@ log::echo "daemon dir host path: $DAEMON_DIR_HOST_PATH"
 log::echo "map file path: $(path::container_id_to_daemon_id $CONTAINER_ID)"
 
 # Clean up the files related to the late daemon.
-for _MAYBE_MOUNT_PATH in $(find "$BRIDGE_DIR_HOST_PATH" -type d -maxdepth 1); do
+for _MAYBE_MOUNT_PATH in $(find "$BRIDGE_DIR_HOST_PATH" -type d -mindepth 2 -maxdepth 2); do
   umount "$_MAYBE_MOUNT_PATH" || true
 done
 

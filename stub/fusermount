@@ -35,9 +35,9 @@ if [[ ! -d "$LINK_DSTPATH" ]]; then
 fi
 
 # Find a proper ID.
-if echo "$LINK_DSTPATH" | grep "$BRIDGE_DIR_CONT_PATH/.*.mount" >/dev/null 2>&1; then
+if echo "$LINK_DSTPATH" | grep "$BRIDGE_DIR_CONT_PATH/[0-9]\+/mount" >/dev/null 2>&1; then
   __SQUASHFS_ID=${LINK_DSTPATH#$BRIDGE_DIR_CONT_PATH/}
-  SQUASHFS_ID=${__SQUASHFS_ID%.mount}
+  SQUASHFS_ID=${__SQUASHFS_ID%/mount}
 else
   echo "$0: cannot derive a squashfs file id."
   exit 1
@@ -53,12 +53,12 @@ echo \
   '}                                    '\
   >"$BRIDGE_FIFO_CONT_PATH"
 
-while [[ ! -f "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done" ]]; do
+while [[ ! -f "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/done" ]]; do
   sleep 0.1
 done
 
-cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
-cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
+cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/out"
+cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/err" >&2
 
 # Fix the destination mount point.
 if [[ "$OPT_NOLINK" == "0" ]]; then

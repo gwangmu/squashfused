@@ -43,8 +43,10 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
 
   SQUASHFS_ID=$(jq::get "$CMD" '.squashfs_id')
   MODE=$(jq::get "$CMD" '.mode')
-  STDOUT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out"
-  STDERR_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.err"
+  STDOUT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/out"
+  STDERR_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/err"
+
+  mkdir -p "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID"
   
   case $MODE in
     forward)
@@ -54,8 +56,8 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
     mount)
       OPTS=$(jq::get "$CMD" '.opts')
       EXTRAS=$(jq::get "$CMD" '.extras')
-      SRCPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.sqfs"
-      DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount"
+      SRCPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/sqfs"
+      DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
       mkdir "$DSTPATH"
 
       if [[ -v SQUASHFUSED_OPTS[nocopy] ]]; then
@@ -79,23 +81,19 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       fi 
       ;;
     unmount)
-      MOUNT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount"
+      MOUNT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
       umount "$MOUNT_PATH" >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
       ;;
     ack)
-      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done"
+      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/done"
       ;;
     cleanup)
-      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done" >/dev/null 2>&1 || true
-      rmdir "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount" >/dev/null 2>&1 || true
-      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.sqfs" >/dev/null 2>&1 || true
-      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out"
-      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.err" 
-      log::echo "$(ls "$BRIDGE_DIR_HOST_PATH")"
+      rm -rf "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID" >/dev/null 2>&1 || true
+      log::echo "bridge dir ls: $(ls "$BRIDGE_DIR_HOST_PATH")"
       ;;
   esac
 
   if [[ "$MODE" != "ack" ]] && [[ "$MODE" != "cleanup" ]]; then
-    touch "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done"
+    touch "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/done"
   fi
 done
