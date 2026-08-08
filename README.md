@@ -38,15 +38,15 @@ $ systemctl --user daemon-reload
 $ systemctl --user restart squashfused-server.service
 ```
 
+Once installed, Squashfused is available to _all_ accounts, including the LDAP-linked ones.
+
 ### Uninstall
 
-If you didn't like Squashfused, you could uninstall it entirely with this command.
+If you didn't like Squashfused, you could uninstall it entirely with this command. No system dependency is touched.
 
 ```
 $ sudo make clean
 ```
-
-Once installed, Squashfused is available to _all_ accounts, including the LDAP-linked ones.
 
 ### How to Use
 
