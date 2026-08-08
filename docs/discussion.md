@@ -4,7 +4,7 @@
 
 One hypothetical solution is to bind-mount the host's `squashfuse` inside the container because, supposedly, users can mount SquashFS images without privileges. However, this doesn't work because `squashfuse` uses a SUID binary (`fusermount`) to delegate mount operations, and SUID binaries break if their callers _cannot_ have `SYS_ADMIN`. The users inside unprivileged rootless containers _cannot_ have `SYS_ADMIN` no matter what, so ultimately, the bind-mounted `squashfuse` doesn't function correctly. Formally speaking, `SYS_ADMIN` is _not_ in the bounding capability set of the unprivileged rootless containers.
 
-## Security Concern
+## Security
 
 When we hear a "bridge directory," the first thing that comes to mind can be a "backdoor" in disguise. Indeed, any sort of "bridge" between the container and the host has the potential to serve as a backdoor, given there is a host-side malicious actor who desires to communicate with someone inside the container covertly. However, we should consider a couple of things before we call it a security issue. 
 
@@ -14,7 +14,7 @@ Second, the bridge directory is a two-way street _only if_ the in-container Squa
 
 One more noteworthy detail is that some exploitable components are on the host namespace, `fusermount` as a prime example. In particular, `fusermount` is a SUID binary running on the host system, so potentially a vulnerability in `fusermount` can be exploited to compromise the host _inside an unprivileged rootless container_. However, this is pretty much _the only_ privileged executable that Squashfused should depend on. Other executables such as the Squashfused daemon or `squashfuse` itself are unprivileged (i.e., not SUID binaries), so the vulnerabilities there don't immediately imply the host exploit. So I'd argue that a new security risk introduced by Squashfused is the bare minimum compared to the privileged counterparts (`--privileged` or `--cap-add SYS_ADMIN`), which depends on the security of multiple SUIDs.
 
-## Performance Concern
+## Performance
 
 WIP: one concern: copy overhead. Background: a SquashFS image should be copied to the "bridge directory" to make it visible to the host. This copying operation can take significant time depending on the image size. Mitigation: use `--no-copy` so that the image is simply mapped to the corresponding image on the host system (e.g., via shared storage, if any) instead of copying it.
 
