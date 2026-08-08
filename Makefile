@@ -9,7 +9,9 @@ install:
 	cp stub/* /usr/local/libexec/squashfused/stub
 	cp lib/* /usr/local/lib/squashfused
 	cp unit/* /etc/systemd/user
-	find /usr/local/libexec/squashfused -type f -exec sed -i 's|@SQUASHFUSED_OPTS_STR@|$(OPTS)|g' {} \;
+	find /usr/local/libexec/squashfused -type f -exec sed -i 's|@SQUASHFUSED_NOCOPY@|$(or $(NOCOPY),0)|g' {} \;
+	find /usr/local/libexec/squashfused -type f -exec sed -i 's|@SQUASHFUSED_NOLINK@|$(or $(NOLINK),0)|g' {} \;
+	find /usr/local/libexec/squashfused -type f -exec sed -i 's|@SQUASHFUSED_CONSTDST@|$(or $(CONSTDST),)|g' {} \;
 
 clean:
 	rm -rf /usr/share/containers/oci/hooks.d/squashfused-*

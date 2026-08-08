@@ -4,9 +4,12 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
+OPT_NOCOPY=@SQUASHFUSED_NOCOPY@
+OPT_NOLINK=@SQUASHFUSED_NOLINK@
+OPT_CONSTDST=@SQUASHFUSED_CONSTDST@
+
 DAEMON_ID=$1
-SQUASHFUSED_OPTS_STR=$2
-MOUNT_MAP_RAW=$3
+MOUNT_MAP_RAW=$2
 
 jq::get() {
   echo "$1" | jq -r "$2"
@@ -17,10 +20,6 @@ log::file "$SERVER_LOG_DIR_PATH/daemon-$DAEMON_ID.log"
 log::echo "squashfused-daemon-$DAEMON_ID"
 
 path::set_host "$DAEMON_ID"
-
-# Get Squashfused options.
-declare -A SQUASHFUSED_OPTS
-opt::get SQUASHFUSED_OPTS "$SQUASHFUSED_OPTS_STR"
 
 # Create a mount map.
 declare -A MOUNT_MAP
@@ -58,11 +57,12 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       EXTRAS=$(jq::get "$CMD" '.extras')
       LN_DSTPATH=$(jq::get "$CMD" '.dstpath')
 
-      if [[ -v SQUASHFUSED_OPTS[nocopy] ]]; then
+      if [[ "$OPT_NOCOPY" == "1" ]]; then
         _SRCPATH=$(jq::get "$CMD" '.srcpath')
         log::echo "requested srcpath: $_SRCPATH"
         
         # Find the mount source path that matches the longest to the forwarded source path.
+        SRCPATH="/nonexistent"
         _SRCPATH_MATCH_LEN=0
         for MOUNT_DSTPATH in ${!MOUNT_MAP[*]}; do
           _MATCH_LEN=$(echo "$_SRCPATH" | grep -o "^$MOUNT_DSTPATH" | wc -c)
@@ -82,7 +82,7 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       PROT_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
       mkdir "$PROT_DSTPATH"
 
-      if [[ -v SQUASHFUSED_OPTS[constdst] ]]; then
+      if [[ -n "$OPT_CONSTDST" ]]; then
         DSTPATH="$CONST_DST_HOST_PATH"
       else
         DSTPATH="$PROT_DSTPATH"
@@ -96,7 +96,7 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       ;;
     unmount)
       MOUNT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
-      if [[ -v SQUASHFUSED_OPTS[constdst] ]]; then
+      if [[ -n "$OPT_CONSTDST" ]]; then
         MOUNT_PATH="$CONST_DST_HOST_PATH"
       fi
       

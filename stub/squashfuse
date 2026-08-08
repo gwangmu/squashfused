@@ -2,9 +2,9 @@
 
 set -eu
 
-OPT_NOCOPY=${SQUASHFUSED_NOCOPY:-0}
-OPT_NOLINK=${SQUASHFUSED_NOLINK:-0}
-OPT_CONSTDST=$(readlink -f "${SQUASHFUSED_CONSTDST:-}" || echo "")
+OPT_NOCOPY=@SQUASHFUSED_NOCOPY@
+OPT_NOLINK=@SQUASHFUSED_NOLINK@
+OPT_CONSTDST=$(readlink -f "@SQUASHFUSED_CONSTDST@" || echo "")
 
 BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
 BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
@@ -140,6 +140,8 @@ if [[ -f "$SRCPATH" ]]; then
       '  "mode": "cleanup"                  '\
       '}                                    '\
       >"$BRIDGE_FIFO_CONT_PATH"
+    
+    exit 1
   fi
 else
   log "forward"
@@ -175,4 +177,9 @@ else
     '  "mode": "cleanup"                  '\
     '}                                    '\
     >"$BRIDGE_FIFO_CONT_PATH"
+
+  # TODO: exit with the actual return code.
+  if [[ -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/err" ]]; then
+    exit 1
+  fi
 fi

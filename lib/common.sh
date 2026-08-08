@@ -29,18 +29,3 @@ state::add() {
 state::print() {
   echo "$CONTAINER_STATE"
 }
-
-opt::get() {
-  local -n _OPTS=$1
-  local _OPTS_STR=$2
-  IFS=',' read -r -a _OPTS_ARR <<<"$_OPTS_STR"
-  for _OPT in "${_OPTS_ARR[@]}"; do
-    _OPT_NAME=${_OPT%=*}
-    _OPT_NAME=${_OPT_NAME,,}
-    case $_OPT in
-      *=*) _OPT_VALUE=${_OPT#*=} ;;
-      *) _OPT_VALUE="1" ;;
-    esac
-    _OPTS["$_OPT_NAME"]=$_OPT_VALUE
-  done
-}
