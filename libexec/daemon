@@ -5,26 +5,22 @@ source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
 DAEMON_ID=$1
-SQUASHFUSED_ENVS=$2
+SQUASHFUSED_OPTS_STR=$2
 MOUNT_MAP_RAW=$3
 
 jq::get() {
   echo "$1" | jq -r "$2"
 }
 
-# Parse Squashfused options.
-declare -A SQUASHFUSED_OPTS
-for SQUASHFUSED_ENV in $SQUASHFUSED_ENVS; do
-  _ENV_NAME=${SQUASHFUSED_ENV%=*}
-  _ENV_VALUE=${SQUASHFUSED_ENV#*=}
-  SQUASHFUSED_OPTS[$_ENV_NAME]=$_ENV_VALUE
-done
-
 # Set up logging.
 log::file "$SERVER_LOG_DIR_PATH/daemon-$DAEMON_ID.log"
 log::echo "squashfused-daemon-$DAEMON_ID"
 
 path::set_host "$DAEMON_ID"
+
+# Get Squashfused options.
+declare -A SQUASHFUSED_OPTS
+opt::get SQUASHFUSED_OPTS "$SQUASHFUSED_OPTS_STR"
 
 # Create a mount map.
 declare -A MOUNT_MAP
@@ -43,7 +39,7 @@ log::echo "owner uid \"$DAEMON_DIR_HOST_PATH\": $(stat "$DAEMON_DIR_HOST_PATH")"
 
 log::echo "$(id)"
 while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
-  log::echo "$CMD"
+  log::echo "$(echo "$CMD" | jq '.')"
 
   SQUASHFS_ID=$(jq::get "$CMD" '.squashfs_id')
   MODE=$(jq::get "$CMD" '.mode')
@@ -62,14 +58,13 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount"
       mkdir "$DSTPATH"
 
-      if [[ ${SQUASHFUSED_OPTS["NO_COPY"]:-0} == "1" ]]; then
+      if [[ -v SQUASHFUSED_OPTS[nocopy] ]]; then
         _SRCPATH=$(jq::get "$CMD" '.srcpath')
         log::echo "requested srcpath: $_SRCPATH"
         
         # Find the mount source path that matches the longest to the forwarded source path.
         _SRCPATH_MATCH_LEN=0
         for MOUNT_DSTPATH in ${!MOUNT_MAP[*]}; do
-          log::echo $(echo "$_SRCPATH" | grep -o "^$MOUNT_DSTPATH")
           _MATCH_LEN=$(echo "$_SRCPATH" | grep -o "^$MOUNT_DSTPATH" | wc -c)
           if (( _MATCH_LEN > _SRCPATH_MATCH_LEN )); then
             log::echo "matched: $MOUNT_DSTPATH"
@@ -91,10 +86,12 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done"
       ;;
     cleanup)
-      rmdir "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount" || true
+      rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.done" >/dev/null 2>&1 || true
+      rmdir "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.mount" >/dev/null 2>&1 || true
       rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.sqfs" >/dev/null 2>&1 || true
       rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.out"
       rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID.err" 
+      log::echo "$(ls "$BRIDGE_DIR_HOST_PATH")"
       ;;
   esac
 

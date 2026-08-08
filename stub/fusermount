@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -eu
+
+OPT_NOLINK=${SQUASHFUSED_NOLINK:-0}
+
 if [[ "$1" != "-u" ]]; then
   echo "$0: only '-u' is supported."
   exit 1
@@ -55,15 +59,17 @@ done
 
 cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
 cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" >&2
-rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.done"
 
 # Fix the destination mount point.
-rm "$DSTPATH"
-mkdir "$DSTPATH"
+if [[ "$OPT_NOLINK" == "0" ]]; then
+  rm "$DSTPATH"
+  mkdir "$DSTPATH"
+fi
 
-# Clean up leftover.
-# TODO: replace this with 'cleanup'.
-rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.out"
-rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err"
-rm "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs" >/dev/null 2>&1 || true
-rmdir "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount"
+# Send cleanup.
+echo \
+  '{                                    '\
+  '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+  '  "mode": "cleanup"                  '\
+  '}                                    '\
+  >"$BRIDGE_FIFO_CONT_PATH"

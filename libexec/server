@@ -14,7 +14,7 @@ mkfifo "$SERVER_FIFO_PATH" || true
 log::file "$SERVER_LOG_DIR_PATH/server.log"
 log::echo "squashfused-server"
 
-SQUASHFUSED_ENVS=@SQUASHFUSED_ENVS@
+SQUASHFUSED_OPTS_STR=@SQUASHFUSED_OPTS_STR@
 
 # Wait and spawn a daemon on demand.
 # ISSUE: sometimes it stucks at reading from the FIFO.
@@ -30,7 +30,7 @@ while IFS= read -r DAEMON_ID <"$SERVER_FIFO_PATH"; do
   mkfifo "$BRIDGE_FIFO_HOST_PATH"
 
   # Create a delegate daemon.
-  nohup setsid /usr/local/libexec/squashfused/daemon "$DAEMON_ID" "$SQUASHFUSED_ENVS" "$MOUNT_MAP_RAW" >/dev/null 2>&1 &
+  nohup setsid /usr/local/libexec/squashfused/daemon "$DAEMON_ID" "$SQUASHFUSED_OPTS_STR" "$MOUNT_MAP_RAW" >/dev/null 2>&1 &
   DAEMON_PID=$!
 
   log::echo "daemon pid: $DAEMON_PID"

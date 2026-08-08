@@ -4,15 +4,7 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
-SQUASHFUSED_ENVS=@SQUASHFUSED_ENVS@
-
-# Parse Squashfused options.
-declare -A SQUASHFUSED_OPTS
-for SQUASHFUSED_ENV in $SQUASHFUSED_ENVS; do
-  _ENV_NAME=${SQUASHFUSED_ENV%=*}
-  _ENV_VALUE=${SQUASHFUSED_ENV#*=}
-  SQUASHFUSED_OPTS[$_ENV_NAME]=$_ENV_VALUE
-done
+SQUASHFUSED_OPTS_STR=@SQUASHFUSED_OPTS_STR@
 
 # There is no container ID because, understandably, this is before `create`.
 # Instead, use a (pseudo-)hash of the root filesystem path.
@@ -24,6 +16,10 @@ log::file "$SERVER_LOG_DIR_PATH/init-$DAEMON_ID.log"
 log::echo "squashfused-init-$DAEMON_ID"
 
 path::set_host "$DAEMON_ID"
+
+# Get Squashfused options.
+declare -A SQUASHFUSED_OPTS
+opt::get SQUASHFUSED_OPTS "$SQUASHFUSED_OPTS_STR"
 
 # Start off the delegate daemon.
 echo "$DAEMON_ID" >"$SERVER_FIFO_PATH"
@@ -38,7 +34,7 @@ done
 
 # If "NO_COPY" was set, there is no reason the bridge directory should be read-write.
 BRIDGE_DIR_WRITE_PERM="rw"
-if [[ ${SQUASHFUSED_OPTS[NO_COPY]:-0} == "1" ]]; then
+if [[ -v SQUASHFUSED_OPTS[nocopy] ]]; then
   BRIDGE_DIR_WRITE_PERM="ro"
 fi
 
@@ -89,8 +85,8 @@ state::add '.mounts' '
   "options": [ "bind" ]
 }]'
 
-for SQUASHFUSED_ENV in $SQUASHFUSED_ENVS; do
-  state::add '.process.env' "[ \"SQUASHFUSED_$SQUASHFUSED_ENV\" ]" 
+for _KEY in ${!SQUASHFUSED_OPTS[@]}; do
+  state::add '.process.env' "[ \"SQUASHFUSED_${_KEY^^}=${SQUASHFUSED_OPTS[$_KEY]}\" ]" 
 done
 
 # DEBUG: log modified OCI runtime spec.

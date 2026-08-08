@@ -2,8 +2,8 @@
 
 set -eu
 
-OPT_NO_COPY=${SQUASHFUSED_NO_COPY:-0}
-OPT_NO_LINK=${SQUASHFUSED_NO_LINK:-0}
+OPT_NOCOPY=${SQUASHFUSED_NOCOPY:-0}
+OPT_NOLINK=${SQUASHFUSED_NOLINK:-0}
 
 BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
 BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"
@@ -49,20 +49,24 @@ log "srcpath: $SRCPATH"
 log "dstpath: $DSTPATH"
 log "opts: $OPTS"
 
-echo "squashfuse-stub: '$SRCPATH' to '$DSTPATH'"
-
 # TODO: collect "<id>.{out,err,sqfs,mount}" to "<id>/{out,err,sqfs,mount}".
 if [[ -f "$SRCPATH" ]]; then
   log "mount"
 
-  if [[ ! -d "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
-    echo "squashfuse-stub: nonexistent or non-empty mount destination."
-    if [[ "$OPT_NO_LINK" != "1" ]]; then
+  if [[ "$OPT_NOLINK" != "1" ]]; then
+    if [[ ! -d "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
+      echo "squashfuse-stub: error: nonexistent or non-empty mount destination."
       exit 1
     fi
   fi
 
-  if [[ "$OPT_NO_COPY" == "0" ]]; then
+  _MOUNT_ECHO_PREFIX=""
+  if [[ "$OPT_NOLINK" != "1" ]]; then
+    _MOUNT_ECHO_PREFIX=" to '$DSTPATH'"
+  fi
+  echo "squashfuse-stub: mounting '$SRCPATH'${_MOUNT_ECHO_PREFIX}..."
+
+  if [[ "$OPT_NOCOPY" == "0" ]]; then
     # Copy the requested SquashFS image to the bridge directory.
     echo "squashfuse-stub: copying image..."
     cp "$SRCPATH" "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.sqfs"
@@ -92,23 +96,29 @@ if [[ -f "$SRCPATH" ]]; then
     cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" | sed 's/^/squashfuse: /g' >&2
   fi 
 
-  # Send ack.
-  echo \
-    '{                                    '\
-    '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
-    '  "mode": "ack"                      '\
-    '}                                    '\
-    >"$BRIDGE_FIFO_CONT_PATH"
-
   # If the mount was successful, create a link to it.
   if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" ]]; then
-    # TODO: add a '--no-link' option, which doesn't create a link to the
-    # destination but prints the path to the actual mounted directory.
-    REAL_DSTPATH=$(readlink -f "$DSTPATH")
-    rmdir "$REAL_DSTPATH"
+    # Create a link if 'nolink' is unset, otherwise report the mountpoint.
+    if [[ "$OPT_NOLINK" != "1" ]]; then
+      REAL_DSTPATH=$(readlink -f "$DSTPATH")
+      rmdir "$REAL_DSTPATH"
+      ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$REAL_DSTPATH"
+    else
+      echo "squashfuse-stub: mounted to '"$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount"'."
+    fi
 
-    ln -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.mount" "$REAL_DSTPATH"
+    # Send ack.
+    echo \
+      '{                                    '\
+      '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
+      '  "mode": "ack"                      '\
+      '}                                    '\
+      >"$BRIDGE_FIFO_CONT_PATH"
   else
+    if [[ "$OPT_NOCOPY" == "1" ]]; then
+      echo "squashfuse-stub: hint: 'nocopy' is on. image might not be visible to the host."
+    fi
+    
     # Send cleanup.
     echo \
       '{                                    '\
@@ -119,6 +129,8 @@ if [[ -f "$SRCPATH" ]]; then
   fi
 else
   log "forward"
+
+  echo "squashfuse-stub: cannot find '"$SRCPATH"'. forwarding arguments..."
 
   # Forward the arguments to the delegate daemon.
   echo \
@@ -141,14 +153,6 @@ else
   if [[ -s "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" ]]; then
     cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID.err" | sed 's/^/squashfuse: /g' >&2
   fi
-
-  # Send ack.
-  echo \
-    '{                                    '\
-    '  "squashfs_id": "'"$SQUASHFS_ID"'", '\
-    '  "mode": "ack"                      '\
-    '}                                    '\
-    >"$BRIDGE_FIFO_CONT_PATH"
 
   # Send cleanup.
   echo \
