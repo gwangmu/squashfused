@@ -40,14 +40,6 @@ $ systemctl --user restart squashfused-server.service
 
 Once installed, Squashfused is available to _all_ accounts, including the LDAP-linked ones.
 
-### Uninstall
-
-If you didn't like Squashfused, you could uninstall it entirely with this command. No system dependency is touched.
-
-```
-$ sudo make clean
-```
-
 ### How to Use
 
 Same as the `squashfuse` usage described [here](https://github.com/vasi/squashfuse). For example, inside the container,
@@ -67,6 +59,14 @@ $ # Unmount 'mount_dir'.
 $ umount mount_dir    # or 'fusermount -u mount_dir'.
 $ ls mount_dir
 (empty)
+```
+
+### Uninstall
+
+If you didn't like Squashfused, you could uninstall it entirely with this command. No system dependency is touched.
+
+```
+$ sudo make clean
 ```
 
 **Note: The container launch doesn't require any special option.** 
