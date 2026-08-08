@@ -61,6 +61,10 @@ $ ls mount_dir
 (empty)
 ```
 
+**Note: The container launch doesn't require any special option.** 
+
+A demo is also available; in the `demo` directory, run `make do_demo` after installation.
+
 ### Uninstall
 
 If you didn't like Squashfused, you could uninstall it entirely with this command. No system dependency is touched.
@@ -68,10 +72,6 @@ If you didn't like Squashfused, you could uninstall it entirely with this comman
 ```
 $ sudo make clean
 ```
-
-**Note: The container launch doesn't require any special option.** 
-
-A demo is also available; in the `demo` directory, run `make do_demo` after installation.
 
 ## See Also
 
