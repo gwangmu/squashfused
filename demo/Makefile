@@ -22,6 +22,12 @@ define clean_up
 	podman rm sf-demo-cont >/dev/null
 endef
 
+do_demo: 
+	make -C . do_demo_copy_link
+	make -C . do_demo_nocopy_link 
+	make -C . do_demo_copy_nolink 
+	make -C . do_demo_nocopy_nolink_constdst
+
 do_demo_copy_link: build_demo_image do_install_copy_link
 	$(call start)
 
