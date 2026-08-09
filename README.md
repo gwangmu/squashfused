@@ -78,4 +78,4 @@ $ sudo make clean
  - [Options](./docs/options.md)
  - [Mechanism](./docs/mechanism.md)
  - [Discussion](./docs/discussion.md)
- - [Blog post](https://medium.com/@gwangmu/mounting-squashfs-inside-an-unprivileged-rootless-container-88e98d639f69)
+ - [Introductory blog post](https://medium.com/@gwangmu/mounting-squashfs-inside-an-unprivileged-rootless-container-88e98d639f69)
