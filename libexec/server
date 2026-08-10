@@ -8,6 +8,8 @@ OPT_NOCOPY=@SQUASHFUSED_NOCOPY@
 OPT_NOLINK=@SQUASHFUSED_NOLINK@
 OPT_CONSTDST=@SQUASHFUSED_CONSTDST@
 
+path::set_server "$UID"
+
 # Provision the server directory. 
 mkdir -p "$SERVER_DIR_PATH"
 mkdir -p "$SERVER_MAP_DIR_PATH"

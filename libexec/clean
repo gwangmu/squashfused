@@ -4,6 +4,8 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
+path::set_server
+
 state::load
 CONTAINER_ID=$(state::read '.id')
 DAEMON_ID=$(cat $(path::container_id_to_daemon_id $CONTAINER_ID))

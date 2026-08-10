@@ -4,6 +4,8 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
+path::set_server
+
 state::load
 DAEMON_ID=$(cksum <<< $(state::read '.root') | cut -d' ' -f1)
 

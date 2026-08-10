@@ -1,5 +1,7 @@
 #!/bin/bash
 
+exec 2>/tmp/err.log
+
 set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
@@ -7,6 +9,8 @@ source /usr/local/lib/squashfused/path.sh
 OPT_NOCOPY=@SQUASHFUSED_NOCOPY@
 OPT_NOLINK=@SQUASHFUSED_NOLINK@
 OPT_CONSTDST=@SQUASHFUSED_CONSTDST@
+
+path::set_server
 
 # There is no container ID because, understandably, this is before `create`.
 # Instead, use a (pseudo-)hash of the root filesystem path.
