@@ -14,6 +14,7 @@ path::set_server "$UID"
 mkdir -p "$SERVER_DIR_PATH"
 mkdir -p "$SERVER_MAP_DIR_PATH"
 mkdir -p "$SERVER_LOG_DIR_PATH"
+rm "$SERVER_FIFO_PATH" >/dev/null 2>&1 || true
 mkfifo "$SERVER_FIFO_PATH" || true
 
 # Set up logging.
