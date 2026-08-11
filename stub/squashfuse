@@ -4,7 +4,7 @@ set -eu
 
 OPT_NOCOPY=@SQUASHFUSED_NOCOPY@
 OPT_NOLINK=@SQUASHFUSED_NOLINK@
-OPT_CONSTDST=$(readlink -f "@SQUASHFUSED_CONSTDST@" || echo "")
+OPT_CONSTDST=$(readlink -f @SQUASHFUSED_CONSTDST@ 2>/dev/null || echo "")
 
 BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
 BRIDGE_FIFO_CONT_PATH="/squashfused/bridge_fifo"

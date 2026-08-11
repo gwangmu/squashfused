@@ -16,6 +16,7 @@ log::echo "squashfused-forward-$DAEMON_ID"
 # Create container-id-to-daemon-id mapping.
 CONTAINER_ID=$(state::read '.id')
 echo "$DAEMON_ID" >"$(path::container_id_to_daemon_id $CONTAINER_ID)"
+echo "$CONTAINER_ID" >"$(path::daemon_id_to_container_id $DAEMON_ID)"
 
 # DEBUG: log modified OCI runtime spec.
 log::echo "$(state::read '.')"

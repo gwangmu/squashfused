@@ -39,6 +39,7 @@ fi
 
 rm -rf "$DAEMON_DIR_HOST_PATH"
 rm -f "$(path::container_id_to_daemon_id $CONTAINER_ID)"
+rm -f "$(path::daemon_id_to_container_id $DAEMON_ID)"
 
 log::echo "$(state::read '.')"
 

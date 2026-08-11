@@ -14,6 +14,7 @@ path::set_server
 
 # There is no container ID because, understandably, this is before `create`.
 # Instead, use a (pseudo-)hash of the root filesystem path.
+# TODO: if available, replace this with the container id in 'cgroupsPath'.
 state::load
 DAEMON_ID=$(cksum <<< $(state::read '.root.path') | cut -d' ' -f1)
 

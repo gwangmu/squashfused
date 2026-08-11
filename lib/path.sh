@@ -36,5 +36,10 @@ path::set_host() {
 
 path::container_id_to_daemon_id() {
   local CONTAINER_ID=$1
-  echo "$SERVER_MAP_DIR_PATH/$CONTAINER_ID"
+  echo "$SERVER_MAP_DIR_PATH/cid:$CONTAINER_ID"
+}
+
+path::daemon_id_to_container_id() {
+  local DAEMON_ID=$1
+  echo "$SERVER_MAP_DIR_PATH/did:$DAEMON_ID"
 }
