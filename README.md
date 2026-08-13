@@ -81,3 +81,7 @@ $ sudo make clean
  - [TODOs](./docs/todos.md)
 
 A less-technical introductory blog post can be found [here](https://medium.com/@gwangmu/mounting-squashfs-inside-an-unprivileged-rootless-container-88e98d639f69).
+
+## Cortesy of
+
+ - [`squashfuse`](https://github.com/vasi/squashfuse), for enabling SquashFS mounts in user space.
