@@ -56,7 +56,7 @@ $ ls mount_dir
 file_in_sqfs
 
 $ # Unmount 'mount_dir'.
-$ umount mount_dir    # or 'fusermount -u mount_dir'.
+$ fusermount -u mount_dir
 $ ls mount_dir
 (empty)
 ```
