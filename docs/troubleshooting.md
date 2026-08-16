@@ -24,7 +24,7 @@ overlayfs on / type overlay ...
 
   If the type is `fuse-overlayfs`, `/proc/<pid>/root` may not be accessible. Fortunately, Podman has supported `overlayfs` for rootless containers for a while. See [this thread](https://github.com/podman-container-tools/podman/discussions/17097) to see how to enable `overlayfs` for rootless containers.
 
-### Check if the image is accessible from the host.
+### Check if the host user has permissions to access the image.
 
 As a side effect of the UID/GID mapping, the host user may not have enough permissions to see the SquashFS image inside the container, even though the user inside the container can see it. This usually happens when the user is the container `root`, but the SquashFS image is in a directory owned by a container user account. As an example, consider launching a rootless Ubuntu container. By default, the user is `root` inside, but the home directories belong to each corresponding container user account.
 
