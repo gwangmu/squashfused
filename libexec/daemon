@@ -4,10 +4,6 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
-OPT_NOCOPY=@SQUASHFUSED_NOCOPY@
-OPT_NOLINK=@SQUASHFUSED_NOLINK@
-OPT_CONSTDST=@SQUASHFUSED_CONSTDST@
-
 DAEMON_ID=$1
 MOUNT_MAP_RAW=$2
 
@@ -39,16 +35,19 @@ log::echo "mount from: ${MOUNT_MAP[*]}"
 log::echo "owner uid \"$DAEMON_DIR_HOST_PATH\": $(stat "$DAEMON_DIR_HOST_PATH")"
 
 # This will be derived on demand.
+CONTAINER_PID="?"
 ROOTFS_PATH="?"
 
 log::echo "$(id)"
 while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
-  if [[ "$ROOTFS_PATH" == "?" ]]; then
-    _CONTAINER_ID=$(cat $(path::daemon_id_to_container_id $DAEMON_ID) || true)
-    if [[ -n "$_CONTAINER_ID" ]]; then
-      _CONTAINER_PID=$(podman inspect $_CONTAINER_ID --format {{.State.Pid}} || true)
-      if [[ -n "$_CONTAINER_PID" ]] && ls /proc/$_CONTAINER_PID/root/ >/dev/null 2>&1; then
-        ROOTFS_PATH="/proc/$_CONTAINER_PID/root"
+  if [[ "$OPT_SRCMODE" == "rootfs" ]] || [[ "$OPT_DSTMODE" == "bind" ]]; then
+    if [[ "$ROOTFS_PATH" == "?" ]]; then
+      _CONTAINER_ID=$(cat $(path::daemon_id_to_container_id $DAEMON_ID) || true)
+      if [[ -n "$_CONTAINER_ID" ]]; then
+        CONTAINER_PID=$(podman inspect $_CONTAINER_ID --format {{.State.Pid}} || true)
+        if [[ -n "$CONTAINER_PID" ]] && ls /proc/$CONTAINER_PID/root/ >/dev/null 2>&1; then
+          ROOTFS_PATH="/proc/$CONTAINER_PID/root"
+        fi
       fi
     fi
   fi
@@ -70,56 +69,59 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
     mount)
       OPTS=$(jq::get "$CMD" '.opts')
       EXTRAS=$(jq::get "$CMD" '.extras')
-      LN_DSTPATH=$(jq::get "$CMD" '.dstpath')
+      REQ_SRCPATH=$(jq::get "$CMD" '.srcpath')
+      REQ_DSTPATH=$(jq::get "$CMD" '.dstpath')
+      log::echo "requested srcpath: $REQ_SRCPATH"
+      log::echo "requested dstpath: $REQ_DSTPATH"
 
-      if [[ "$OPT_NOCOPY" == "1" ]]; then
-        _SRCPATH=$(jq::get "$CMD" '.srcpath')
-        log::echo "requested srcpath: $_SRCPATH"
+      SRCPATH="?"
+      if [[ "$OPT_SRCMODE" == "rootfs" ]]; then
 
-        # Find the mount source path.
-        SRCPATH="/nonexistent"
-
-        # If `ROOTFS_PATH` is available, use it. 
         if [[ "$ROOTFS_PATH" != "?" ]]; then
-          MAYBE_SRCPATH="$ROOTFS_PATH""$_SRCPATH"
+          MAYBE_SRCPATH="$ROOTFS_PATH""$REQ_SRCPATH"
           if [[ -f "$MAYBE_SRCPATH" ]]; then
             SRCPATH=$MAYBE_SRCPATH
           else
-            # Otherwise, match the longest to the forwarded source path.
-            _SRCPATH_MATCH_LEN=0
-            for MOUNT_DSTPATH in ${!MOUNT_MAP[*]}; do
-              _MATCH_LEN=$(echo "$_SRCPATH" | grep -o "^$MOUNT_DSTPATH" | wc -c)
-              if (( _MATCH_LEN > _SRCPATH_MATCH_LEN )); then
-                log::echo "matched: $MOUNT_DSTPATH"
-                _SRCPATH_MATCH_LEN=$_MATCH_LEN
-                SRCPATH="${MOUNT_MAP[$MOUNT_DSTPATH]}/$(echo "$_SRCPATH" | sed "s@^$MOUNT_DSTPATH@@g")"
-              fi
-            done
+            echo "squashfused-daemon: requested image not avilable in rootfs." >"$STDERR_PATH"
           fi
+        else
+          echo "squashfused-daemon: rootfs not available." >"$STDERR_PATH"
         fi
-      else
+      elif [[ "$OPT_SRCMODE" == "map" ]]; then
+        # Find the mount source path. Match the longest among the mapped paths.
+        _SRCPATH_MATCH_LEN=0
+        for MOUNT_DSTPATH in ${!MOUNT_MAP[*]}; do
+          _MATCH_LEN=$(echo "$REQ_SRCPATH" | grep -o "^$MOUNT_DSTPATH" | wc -c)
+          if (( _MATCH_LEN > _SRCPATH_MATCH_LEN )); then
+            log::echo "matched: $MOUNT_DSTPATH"
+            _SRCPATH_MATCH_LEN=$_MATCH_LEN
+            SRCPATH="${MOUNT_MAP[$MOUNT_DSTPATH]}/$(echo "$REQ_SRCPATH" | sed "s@^$MOUNT_DSTPATH@@g")"
+          fi
+        done
+      elif [[ "$OPT_SRCMODE" == "copy" ]]; then
         SRCPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/sqfs"
       fi
 
       log::echo "final srcpath: $SRCPATH"
+      if [[ "$SRCPATH" != "?" ]]; then
+        # 'PROT_DSTPATH' is a protocol destination path, whose existence signals
+        # a successful mount. When 'constdst' is unset (by default), 
+        # this is the same as the actual mount destionation path.
+        PROT_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
+        mkdir "$PROT_DSTPATH"
 
-      # 'PROT_DSTPATH' is a protocol destination path, whose existence signals
-      # a successful mount. When 'constdst' is unset (by default), 
-      # this is the same as the actual mount destionation path.
-      PROT_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
-      mkdir "$PROT_DSTPATH"
+        if [[ -n "$OPT_CONSTDST" ]]; then
+          DSTPATH="$CONST_DST_HOST_PATH"
+        else
+          DSTPATH="$PROT_DSTPATH"
+        fi
 
-      if [[ -n "$OPT_CONSTDST" ]]; then
-        DSTPATH="$CONST_DST_HOST_PATH"
-      else
-        DSTPATH="$PROT_DSTPATH"
+        if ! squashfuse $OPTS "$SRCPATH" "$DSTPATH" $EXTRAS >"$STDOUT_PATH" 2>"$STDERR_PATH"; then
+          rmdir "$PROT_DSTPATH"
+        fi 
+
+        echo "$REQ_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
       fi
-
-      if ! squashfuse $OPTS "$SRCPATH" "$DSTPATH" $EXTRAS >"$STDOUT_PATH" 2>"$STDERR_PATH"; then
-        rmdir "$PROT_DSTPATH"
-      fi 
-
-      echo "$LN_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
       ;;
     unmount)
       MOUNT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"

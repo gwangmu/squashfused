@@ -2,8 +2,8 @@
 
 set -eu
 
-OPT_NOCOPY=@SQUASHFUSED_NOCOPY@
-OPT_NOLINK=@SQUASHFUSED_NOLINK@
+OPT_SRCMODE=@SQUASHFUSED_SRCMODE@
+OPT_DSTMODE=@SQUASHFUSED_DSTMODE@
 OPT_CONSTDST=$(readlink -f @SQUASHFUSED_CONSTDST@ 2>/dev/null || echo "")
 
 BRIDGE_DIR_CONT_PATH="/squashfused/bridge_dir"
@@ -53,25 +53,25 @@ log "opts: $OPTS"
 if [[ -f "$SRCPATH" ]]; then
   log "mount"
 
-  if [[ "$OPT_NOLINK" != "1" ]]; then
+  if [[ "$OPT_DSTMODE" != "null" ]] && [[ "$OPT_DSTMODE" != "const" ]]; then
     if [[ ! -d "$DSTPATH" ]] || [[ -L "$DSTPATH" ]] || [[ ! -z "$(find "$DSTPATH" -mindepth 1 -maxdepth 1)" ]]; then 
       echo "squashfuse-stub: error: nonexistent or non-empty mount destination."
       exit 1
     fi
   fi
 
-  if [[ -n "$OPT_CONSTDST" ]] && [[ -n $(find "$OPT_CONSTDST" -mindepth 1 -maxdepth 1) ]]; then
-    echo "squashfuse-stub: error: 'constdst' is set. seems mounted."
+  if [[ "$OPT_DSTMODE" == "const" ]] && [[ -n $(find "$OPT_CONSTDST" -mindepth 1 -maxdepth 1) ]]; then
+    echo "squashfuse-stub: error: 'constdst' seems mounted."
     exit 1
   fi
 
   _MOUNT_ECHO_PREFIX=""
-  if [[ "$OPT_NOLINK" != "1" ]]; then
+  if [[ "$OPT_DSTMODE" != "null" ]] && [[ "$OPT_DSTMODE" != "const" ]]; then
     _MOUNT_ECHO_PREFIX=" to '$DSTPATH'"
   fi
   echo "squashfuse-stub: mounting '$SRCPATH'${_MOUNT_ECHO_PREFIX}..."
 
-  if [[ "$OPT_NOCOPY" == "0" ]]; then
+  if [[ "$OPT_SRCMODE" == "copy" ]]; then
     # Copy the requested SquashFS image to the bridge directory.
     echo "squashfuse-stub: copying image..."
     mkdir -p "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID"
@@ -106,12 +106,12 @@ if [[ -f "$SRCPATH" ]]; then
   # If the mount was successful, create a link to it.
   if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount" ]]; then
     MOUNT_DSTPATH="$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount"
-    if [[ -n "$OPT_CONSTDST" ]]; then
+    if [[ "$OPT_DSTMODE" == "const" ]]; then
       MOUNT_DSTPATH="$OPT_CONSTDST"
     fi
     
     # Create a link if 'nolink' is unset, otherwise report the mountpoint.
-    if [[ "$OPT_NOLINK" != "1" ]]; then
+    if [[ "$OPT_DSTMODE" == "link" ]]; then
       REAL_DSTPATH=$(readlink -f "$DSTPATH")
       if [[ -z "$OPT_CONSTDST" ]] || [[ "$REAL_DSTPATH" != "$OPT_CONSTDST" ]]; then
         rmdir "$REAL_DSTPATH"
@@ -129,8 +129,8 @@ if [[ -f "$SRCPATH" ]]; then
       '}                                    '\
       >"$BRIDGE_FIFO_CONT_PATH"
   else
-    if [[ "$OPT_NOCOPY" == "1" ]]; then
-      echo "squashfuse-stub: hint: 'nocopy' is on. image might not be visible to the host."
+    if [[ "$OPT_SRCMODE" != "copy" ]]; then
+      echo "squashfuse-stub: hint: image might not be visible to the host."
     fi
     
     # Send cleanup.

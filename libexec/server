@@ -4,10 +4,6 @@ set -eu
 source /usr/local/lib/squashfused/common.sh
 source /usr/local/lib/squashfused/path.sh
 
-OPT_NOCOPY=@SQUASHFUSED_NOCOPY@
-OPT_NOLINK=@SQUASHFUSED_NOLINK@
-OPT_CONSTDST=@SQUASHFUSED_CONSTDST@
-
 path::set_server "$UID"
 
 # Provision the server directory. 
@@ -35,7 +31,7 @@ while IFS= read -r DAEMON_ID <"$SERVER_FIFO_PATH"; do
   mkfifo "$BRIDGE_FIFO_HOST_PATH"
 
   # If 'constdst' is set, create a constant destiation directory.
-  if [[ -n "$OPT_CONSTDST" ]]; then
+  if [[ "$OPT_DSTMODE" == "const" ]]; then
     mkdir -p "$CONST_DST_HOST_PATH"
   fi
 
