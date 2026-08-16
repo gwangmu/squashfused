@@ -76,9 +76,7 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
 
       SRCPATH="?"
       if [[ "$OPT_SRCMODE" == "rootfs" ]]; then
-        if [[ "$ROOTFS_PATH" != "?" ]]; then
-          SRCPATH="$ROOTFS_PATH""$REQ_SRCPATH"
-        fi
+        SRCPATH="$ROOTFS_PATH""$REQ_SRCPATH"
       elif [[ "$OPT_SRCMODE" == "map" ]]; then
         # Find the mount source path. Match the longest among the mapped paths.
         _SRCPATH_MATCH_LEN=0
@@ -98,32 +96,50 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       if [[ "$SRCPATH" == "?" ]]; then
         echo "squashfused-daemon: cannot resolve srcpath." >"$STDERR_PATH"
       else
-        # 'PROT_DSTPATH' is a protocol destination path, whose existence signals
+        # 'NOMINAL_DSTPATH' is a protocol destination path, whose existence signals
         # a successful mount. When 'constdst' is unset (by default), 
         # this is the same as the actual mount destionation path.
-        PROT_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
-        mkdir "$PROT_DSTPATH"
+        NOMINAL_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
+        mkdir "$NOMINAL_DSTPATH"
 
+        DSTPATH="$NOMINAL_DSTPATH"
         if [[ "$OPT_DSTMODE" == "const" ]]; then
           DSTPATH="$CONST_DST_HOST_PATH"
-        else
-          DSTPATH="$PROT_DSTPATH"
         fi
 
         if ! squashfuse $OPTS "$SRCPATH" "$DSTPATH" $EXTRAS >"$STDOUT_PATH" 2>"$STDERR_PATH"; then
-          rmdir "$PROT_DSTPATH"
-        fi 
-
-        echo "$REQ_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
+          rmdir "$NOMINAL_DSTPATH"
+        else
+          # If 'DSTMODE' is 'bind', enter the user/mount namespace and create
+          # a real bind-mount to the requested destination.
+          if [[ "$OPT_DSTMODE" == "bind" ]]; then
+            CONT_DSTPATH="$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount"
+            if nsenter --target $CONTAINER_PID --user --mount --pid mount --bind "$CONT_DSTPATH" "$REQ_DSTPATH" >>"$STDOUT_PATH" 2>>"$STDERR_PATH"; then
+              umount "$NOMINAL_DSTPATH"
+              echo "$REQ_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
+            else
+              echo "$CONT_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
+            fi
+          else
+            # Print out the requested destination.
+            echo "$REQ_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
+          fi
+        fi
       fi
       ;;
     unmount)
       MOUNT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
-      if [[ -n "$OPT_CONSTDST" ]]; then
+      if [[ "$OPT_DSTMODE" == "const" ]]; then
         MOUNT_PATH="$CONST_DST_HOST_PATH"
+      elif [[ "$OPT_DSTMODE" == "bind" ]]; then
+        MOUNT_PATH=$(cat "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link")
       fi
       
-      umount "$MOUNT_PATH" >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
+      if [[ "$OPT_DSTMODE" == "bind" ]]; then
+        nsenter --target $CONTAINER_PID --user --mount --pid umount "$MOUNT_PATH" >>"$STDOUT_PATH" 2>>"$STDERR_PATH" || true
+      else
+        umount "$MOUNT_PATH" >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
+      fi
       ;;
     ack)
       rm "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/done"

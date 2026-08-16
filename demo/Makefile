@@ -13,7 +13,7 @@ define start_w_volume
 endef
 
 define exec
-	echo "$$ $(1)"
+	echo "$$ ${1}"
 	podman exec sf-demo-cont bash -c $(1)
 endef
 
@@ -132,6 +132,48 @@ do_demo_rootfs_link: build_demo_image do_install_rootfs_link
 	
 	$(call clean_up)
 
+do_demo_rootfs_bind: build_demo_image do_install_rootfs_bind
+	$(call start)
+
+	echo "$$ # Report basic config"
+	$(call exec,"id")
+	$(call exec,"pwd")
+	echo
+
+	echo "$$ # Prepare mount destinations"
+	$(call exec,"mkdir empty_file")
+	$(call exec,"mkdir small_file")
+	$(call exec,"ls -l")
+	echo
+	
+	echo "$$ # Mount empty_file.sqfs"
+	$(call exec,"squashfuse empty_file.sqfs empty_file")
+	$(call exec,"ls -l")
+	$(call exec,"findmnt --type fuse.squashfuse --output target -n")
+	$(call exec,"ls /squashfused/bridge_dir")
+	$(call exec,"ls empty_file")
+	echo 
+	
+	echo "$$ # Mount small_file.sqfs"
+	$(call exec,"squashfuse small_file.sqfs small_file")
+	$(call exec,"ls -l")
+	$(call exec,"findmnt --type fuse.squashfuse --output=target -n")
+	$(call exec,"ls /squashfused/bridge_dir")
+	$(call exec,"cat small_file/test_doc")
+	echo 
+	
+	echo "$$ # Unmount everyting"
+	$(call exec,"fusermount -u empty_file")
+	$(call exec,"fusermount -u small_file")
+	$(call exec,"ls -l")
+	$(call exec,"findmnt --type fuse.squashfuse --output=target -n")
+	$(call exec,"ls /squashfused/bridge_dir")
+	$(call exec,"ls -l")
+	$(call exec,"ls small_file")
+	echo 
+	
+	$(call clean_up)
+
 do_demo_copy_null: build_demo_image do_install_copy_null
 	$(call start)
 
@@ -242,6 +284,13 @@ do_install_map_link:
 do_install_rootfs_link:
 	echo "Installing... (rootfs, link)"
 	sudo make -C .. -s install SRCMODE=rootfs DSTMODE=link
+	systemctl --user daemon-reload
+	systemctl --user restart squashfused-server
+	echo
+
+do_install_rootfs_bind:
+	echo "Installing... (rootfs, bind)"
+	sudo make -C .. -s install SRCMODE=rootfs DSTMODE=bind
 	systemctl --user daemon-reload
 	systemctl --user restart squashfused-server
 	echo

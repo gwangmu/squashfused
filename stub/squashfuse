@@ -103,22 +103,23 @@ if [[ -f "$SRCPATH" ]]; then
     cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/err" | sed 's/^/squashfuse: /g' >&2
   fi 
 
-  # If the mount was successful, create a link to it.
-  if [[ -d "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount" ]]; then
-    MOUNT_DSTPATH="$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount"
-    if [[ "$OPT_DSTMODE" == "const" ]]; then
-      MOUNT_DSTPATH="$OPT_CONSTDST"
-    fi
-    
-    # Create a link if 'nolink' is unset, otherwise report the mountpoint.
+  # If the mount was successful, do follow-up tasks.
+  REGULAR_DSTPATH="$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount"
+  if [[ -d "$REGULAR_DSTPATH" ]]; then
     if [[ "$OPT_DSTMODE" == "link" ]]; then
+      # Create a link to the requested destination.
       REAL_DSTPATH=$(readlink -f "$DSTPATH")
-      if [[ -z "$OPT_CONSTDST" ]] || [[ "$REAL_DSTPATH" != "$OPT_CONSTDST" ]]; then
-        rmdir "$REAL_DSTPATH"
-        ln -s "$MOUNT_DSTPATH" "$REAL_DSTPATH"
-      fi
-    else
-      echo "squashfuse-stub: mounted to '"$MOUNT_DSTPATH"'."
+      rmdir "$REAL_DSTPATH"
+      ln -s "$REGULAR_DSTPATH" "$REAL_DSTPATH"
+    elif [[ "$OPT_DSTMODE" == "bind" ]]; then
+      # Check the bind-mount was successful.
+      if [[ "$(cat "$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/link")" == "$REGULAR_DSTPATH" ]]; then
+        echo "squashfuse-stub: warning: request destination not bind-mounted."
+        echo "squashfuse-stub: mounted to '"$REGULAR_DSTPATH"'."
+      fi 
+    elif [[ "$OPT_DSTMODE" == "null" ]]; then
+      # Report the mountpoint.
+      echo "squashfuse-stub: mounted to '"$REGULAR_DSTPATH"'."
     fi
 
     # Send ack.

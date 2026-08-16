@@ -53,6 +53,20 @@ elif [[ "$OPT_DSTMODE" == "link" ]] || [[ "$OPT_DSTMODE" == "null" ]]; then
     __SQUASHFS_ID=${REAL_DSTPATH#$BRIDGE_DIR_CONT_PATH/}
     SQUASHFS_ID=${__SQUASHFS_ID%/mount}
   fi
+elif [[ "$OPT_DSTMODE" == "bind" ]]; then
+  if [[ "$REAL_DSTPATH" == "$BRIDGE_DIR_CONT_PATH"* ]]; then
+    __SQUASHFS_ID=${REAL_DSTPATH#$BRIDGE_DIR_CONT_PATH/}
+    SQUASHFS_ID=${__SQUASHFS_ID%/mount}
+  else
+    # Find matching regular destnation.
+    for _LINK_PATH in $(find "$BRIDGE_DIR_CONT_PATH" -maxdepth 2 -mindepth 2 -type f -name 'link' 2>/dev/null); do
+      if [[ "$(cat "$_LINK_PATH")" == "$REAL_DSTPATH" ]]; then
+        __SQUASHFS_ID=${_LINK_PATH#$BRIDGE_DIR_CONT_PATH/}
+        SQUASHFS_ID=${__SQUASHFS_ID%/link}
+        break
+      fi
+    done
+  fi
 fi
 
 # The unmount request could have been made directly to the mountpoint
