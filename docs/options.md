@@ -8,6 +8,17 @@ $ sudo make install [OPTIONS...]
 
 ## Available Options
 
- - `NOCOPY=1`: do not copy the target SquashFS image to the bridge directory when mounting. When set, the bridge directory is made read-only inside the container, and only SquashFS images visible to the host can be mounted (e.g., via shared volumes).
- - `NOLINK=1`: do not link the mountpoint to the destination in the container. When set, the stub `squashfuse` doesn't check if the destination was provided in the argument.
- - `CONSTDST=<path>`: always use a constant mount destination `<path>` inside a container. When set, only one SquashFS image can be mounted at a time.
+ - `SRCMODE`: Source SquashFS image reference mode.
+   - `copy`: Copy the requested image to the bridge directory. This makes the bridge directory read-write. (default)
+   - `map`: Search bind-mounted directories only.
+   - `rootfs`: Search the container rootfs directly. `/proc/<pid>/root` should be accessible for this.
+ - `DSTMODE`: Mount destination handling mode.
+   - `link`: Create a symlink to the mountpoint in the bridge directory.
+   - `bind`: Create a bind mount on the requested mount destination. `/proc/<pid>/root` should be accessible for this.
+   - `const`: Use a constant mountpoint specified by `CONSTDST`.
+   - `null`: Do not create anything. Just report the mountpoint path.
+ - `CONSTDST=<path>`: constant mountpoint path. Only considered if `DSTMODE=const`.
+
+## Caveat
+
+ - `/proc/<pid>/root` is not accessible if the container uses `fuse-overlayfs`. [Related discussion thread](https://github.com/podman-container-tools/podman/discussions/17097).
