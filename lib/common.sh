@@ -1,7 +1,7 @@
 #!/bin/bash
 
 OPT_SRCMODE=@SQUASHFUSED_SRCMODE@   # rootfs, map, copy
-OPT_DSTMODE=@SQUASHFUSED_DSTMODE@   # null, link, const
+OPT_DSTMODE=@SQUASHFUSED_DSTMODE@   # null, link, const, bind
 OPT_CONSTDST=@SQUASHFUSED_CONSTDST@
 
 log::file() {

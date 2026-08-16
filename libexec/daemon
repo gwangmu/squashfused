@@ -104,7 +104,7 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
         PROT_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
         mkdir "$PROT_DSTPATH"
 
-        if [[ -n "$OPT_CONSTDST" ]]; then
+        if [[ "$OPT_DSTMODE" == "const" ]]; then
           DSTPATH="$CONST_DST_HOST_PATH"
         else
           DSTPATH="$PROT_DSTPATH"
