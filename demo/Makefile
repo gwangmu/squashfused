@@ -25,8 +25,10 @@ endef
 do_demo: 
 	make -C . do_demo_copy_link
 	make -C . do_demo_map_link 
+	make -C . do_demo_rootfs_link 
 	make -C . do_demo_copy_null 
 	make -C . do_demo_map_const
+	make -C . do_demo_rootfs_const
 
 do_demo_copy_link: build_demo_image do_install_copy_link
 	$(call start)
@@ -90,6 +92,41 @@ do_demo_map_link: build_demo_image do_install_map_link
 	
 	echo "$$ # Unmount"
 	$(call exec,"fusermount -u empty_file")
+	$(call exec,"ls -l")
+	echo 
+	
+	$(call clean_up)
+
+do_demo_rootfs_link: build_demo_image do_install_rootfs_link
+	$(call start)
+
+	echo "$$ # Report basic config"
+	$(call exec,"id")
+	$(call exec,"pwd")
+	echo
+
+	echo "$$ # Prepare mount destinations"
+	$(call exec,"mkdir empty_file")
+	$(call exec,"mkdir small_file")
+	$(call exec,"ls -l")
+	echo
+	
+	echo "$$ # Mount empty_file.sqfs"
+	$(call exec,"squashfuse empty_file.sqfs empty_file")
+	$(call exec,"ls -l")
+	$(call exec,"ls empty_file")
+	echo 
+	
+	echo "$$ # Mount small_file.sqfs"
+	$(call exec,"squashfuse small_file.sqfs small_file")
+	$(call exec,"ls -l")
+	$(call exec,"ls small_file")
+	$(call exec,"cat small_file/test_doc")
+	echo 
+	
+	echo "$$ # Unmount everyting"
+	$(call exec,"fusermount -u empty_file")
+	$(call exec,"fusermount -u small_file")
 	$(call exec,"ls -l")
 	echo 
 	
@@ -198,6 +235,13 @@ do_install_copy_link:
 do_install_map_link:
 	echo "Installing... (map, link)"
 	sudo make -C .. -s install SRCMODE=map DSTMODE=link
+	systemctl --user daemon-reload
+	systemctl --user restart squashfused-server
+	echo
+
+do_install_rootfs_link:
+	echo "Installing... (rootfs, link)"
+	sudo make -C .. -s install SRCMODE=rootfs DSTMODE=link
 	systemctl --user daemon-reload
 	systemctl --user restart squashfused-server
 	echo
