@@ -86,15 +86,6 @@ state::add '.mounts' '
   "options": [ "bind" ]
 }]'
 
-## TODO: only inject when unprivileged.
-#state::add '.mounts' '
-#[{ 
-#  "source": "/usr/local/libexec/squashfused/stub/umount",
-#  "type": "bind",
-#  "destination": "/usr/bin/umount",
-#  "options": [ "bind" ]
-#}]'
-
 # DEBUG: log modified OCI runtime spec.
 log::echo "$(state::read '.')"
 
