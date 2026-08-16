@@ -76,16 +76,8 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
 
       SRCPATH="?"
       if [[ "$OPT_SRCMODE" == "rootfs" ]]; then
-
         if [[ "$ROOTFS_PATH" != "?" ]]; then
-          MAYBE_SRCPATH="$ROOTFS_PATH""$REQ_SRCPATH"
-          if [[ -f "$MAYBE_SRCPATH" ]]; then
-            SRCPATH=$MAYBE_SRCPATH
-          else
-            echo "squashfused-daemon: requested image not avilable in rootfs." >"$STDERR_PATH"
-          fi
-        else
-          echo "squashfused-daemon: rootfs not available." >"$STDERR_PATH"
+          SRCPATH="$ROOTFS_PATH""$REQ_SRCPATH"
         fi
       elif [[ "$OPT_SRCMODE" == "map" ]]; then
         # Find the mount source path. Match the longest among the mapped paths.
@@ -103,7 +95,9 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       fi
 
       log::echo "final srcpath: $SRCPATH"
-      if [[ "$SRCPATH" != "?" ]]; then
+      if [[ "$SRCPATH" == "?" ]]; then
+        echo "squashfused-daemon: cannot resolve srcpath." >"$STDERR_PATH"
+      else
         # 'PROT_DSTPATH' is a protocol destination path, whose existence signals
         # a successful mount. When 'constdst' is unset (by default), 
         # this is the same as the actual mount destionation path.
