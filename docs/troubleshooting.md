@@ -9,7 +9,7 @@ $ systemctl --user daemon-reload
 $ systemctl --user restart squashfused-server
 ```
 
-## `squashfuse` complains that the SquashFS image even if `SRCMODE` is `rootfs`.
+## `squashfuse` can't see the SquashFS image even if `SRCMODE` is `rootfs`.
 
 A typical error message says `squashfuse: Can't open squashfs image: Permission denied`. There are a couple of issues to check.
 
