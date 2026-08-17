@@ -13,7 +13,7 @@ $ sudo make install [OPTIONS...]
    - `map`: Search bind-mounted directories only.
    - `rootfs`: Search the container rootfs directly. `/proc/<pid>/root` should be accessible for this.
  - `DSTMODE`: Mount destination handling mode.
-   - `link`: Create a symlink to the mountpoint in the bridge directory. (default)
+   - `link`: Create a symlink to the mountpoint installed in the bridge directory. (default)
    - `bind`: Create a bind mount on the requested mount destination. `/proc/<pid>/root` should be accessible for this.
    - `const`: Use a constant mountpoint specified by `CONSTDST`.
    - `null`: Do not create anything. Just report the mountpoint path.
