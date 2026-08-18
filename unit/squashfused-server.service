@@ -2,9 +2,9 @@
 Description=Squashfused server
 
 [Service]
-Type=Simple
+Type=simple
 ExecStart=/usr/local/libexec/squashfused/server
-Restart=Always
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
