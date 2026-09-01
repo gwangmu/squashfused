@@ -21,13 +21,15 @@ state::load() {
 
 state::read() {
   local field=$1
-  echo "$CONTAINER_STATE" | jq -rc "$field"
+  echo "$CONTAINER_STATE" | jq -rc 'try('"$field"') // ""'
 }
 
 state::add() {
   local field=$1
   local value=$2
-  CONTAINER_STATE=$(echo "$CONTAINER_STATE" | jq "$field"' += '"$value")
+  if [[ -n $(state::read "$field") ]]; then
+    CONTAINER_STATE=$(echo "$CONTAINER_STATE" | jq "$field"' += '"$value")
+  fi
 }
 
 state::print() {

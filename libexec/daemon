@@ -8,7 +8,7 @@ DAEMON_ID=$1
 MOUNT_MAP_RAW=$2
 
 jq::get() {
-  echo "$1" | jq -r "$2"
+  echo "$1" | jq -r 'try('"$2"') // ""'
 }
 
 path::set_server
@@ -25,6 +25,7 @@ while read MOUNT_MAP_RAW_ELEM; do
   if [[ "$(jq::get "$MOUNT_MAP_RAW_ELEM" '.type')" == "bind" ]]; then
     _SRC=$(jq::get "$MOUNT_MAP_RAW_ELEM" '.source')
     _DST=$(jq::get "$MOUNT_MAP_RAW_ELEM" '.destination')
+    if [[ -z "$_SRC" ]] || [[ -z "$_DST" ]]; then continue; fi
     MOUNT_MAP[$_DST]=$_SRC
     log::echo "mount entry: $MOUNT_MAP_RAW_ELEM"
   fi
@@ -38,45 +39,80 @@ log::echo "owner uid \"$DAEMON_DIR_HOST_PATH\": $(stat "$DAEMON_DIR_HOST_PATH")"
 CONTAINER_PID="?"
 ROOTFS_PATH="?"
 
+req::done() {
+  if [[ -v MODE ]] && [[ "$MODE" != "ack" ]] && [[ "$MODE" != "cleanup" ]] && \
+     [[ -v BRIDGE_DIR_HOST_PATH ]] && [[ -v SQUASHFS_ID ]]; then
+    touch "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/done"
+  fi
+}
+
+req::error() {
+  MSG="$@"
+  if [[ -v STDERR_PATH ]]; then
+    echo "daemon: $MSG" >"$STDERR_PATH"
+    req::done
+  else
+    log::echo "squashfused-daemon: $MSG"
+  fi
+}
+
 log::echo "$(id)"
 while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
-  if [[ "$OPT_SRCMODE" == "rootfs" ]] || [[ "$OPT_DSTMODE" == "bind" ]]; then
-    if [[ "$ROOTFS_PATH" == "?" ]]; then
-      _CONTAINER_ID=$(cat $(path::daemon_id_to_container_id $DAEMON_ID) || true)
-      if [[ -n "$_CONTAINER_ID" ]]; then
-        CONTAINER_PID=$(podman inspect $_CONTAINER_ID --format {{.State.Pid}} || true)
-        if [[ -n "$CONTAINER_PID" ]] && ls /proc/$CONTAINER_PID/root/ >/dev/null 2>&1; then
-          ROOTFS_PATH="/proc/$CONTAINER_PID/root"
-        fi
-      fi
-    fi
-  fi
-
   log::echo "$(echo "$CMD" | jq '.')"
 
   SQUASHFS_ID=$(jq::get "$CMD" '.squashfs_id')
+  if [[ -z "$SQUASHFS_ID" ]]; then
+    req::error "rejecting request without squashfs id."
+    continue 
+  fi
+
   MODE=$(jq::get "$CMD" '.mode')
   STDOUT_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/out"
   STDERR_PATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/err"
 
   mkdir -p "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID"
   
+  # If necessary, find the container root filesystem path.
+  if [[ "$OPT_SRCMODE" == "rootfs" ]] || [[ "$OPT_DSTMODE" == "bind" ]]; then
+    if [[ "$ROOTFS_PATH" == "?" ]]; then
+      _CONTAINER_ID=$(cat $(path::daemon_id_to_container_id $DAEMON_ID) || true)
+      if [[ -z "$_CONTAINER_ID" ]]; then
+        req::error "container id not found."
+        continue
+      else
+        CONTAINER_PID=$(podman inspect $_CONTAINER_ID --format {{.State.Pid}} || true)
+        if [[ -z "$CONTAINER_PID" ]] || ! ls /proc/$CONTAINER_PID/root/ >/dev/null 2>&1; then
+          req::error "container root filesystem inaccessible."
+          continue
+        else
+          ROOTFS_PATH="/proc/$CONTAINER_PID/root"
+        fi
+      fi
+    fi
+  fi
+
   case $MODE in
     forward)
-      ARGS=$(jq::get "$CMD" '.args')
-      squashfuse $ARGS >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
+      # For now, reject any forward requests.
+      req::error "rejecting forward request."
+      continue
+      #ARGS=$(jq::get "$CMD" '.args')
+      #squashfuse $ARGS >"$STDOUT_PATH" 2>"$STDERR_PATH" || true
       ;;
     mount)
-      OPTS=$(jq::get "$CMD" '.opts')
-      EXTRAS=$(jq::get "$CMD" '.extras')
       REQ_SRCPATH=$(jq::get "$CMD" '.srcpath')
       REQ_DSTPATH=$(jq::get "$CMD" '.dstpath')
       log::echo "requested srcpath: $REQ_SRCPATH"
       log::echo "requested dstpath: $REQ_DSTPATH"
 
+      if [[ -z "$REQ_SRCPATH" ]] || [[ -z "$REQ_DSTPATH" ]]; then
+        req::error "rejecting request without src or dst paths."
+        continue
+      fi
+
       SRCPATH="?"
       if [[ "$OPT_SRCMODE" == "rootfs" ]]; then
-        SRCPATH="$ROOTFS_PATH""$REQ_SRCPATH"
+        SRCPATH="$ROOTFS_PATH""$(readlink -m $REQ_SRCPATH)"
       elif [[ "$OPT_SRCMODE" == "map" ]]; then
         # Find the mount source path. Match the longest among the mapped paths.
         _SRCPATH_MATCH_LEN=0
@@ -93,37 +129,38 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       fi
 
       log::echo "final srcpath: $SRCPATH"
-      if [[ "$SRCPATH" == "?" ]]; then
-        echo "squashfused-daemon: cannot resolve srcpath." >"$STDERR_PATH"
+      if [[ ! -f "$SRCPATH" ]]; then
+        req::error "rejecting unresolvable image reference."
+        continue
+      fi
+
+      # 'NOMINAL_DSTPATH' is a protocol destination path, whose existence signals
+      # a successful mount. When 'constdst' is unset (by default), 
+      # this is the same as the actual mount destionation path.
+      NOMINAL_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
+      mkdir "$NOMINAL_DSTPATH"
+
+      DSTPATH="$NOMINAL_DSTPATH"
+      if [[ "$OPT_DSTMODE" == "const" ]]; then
+        DSTPATH="$CONST_DST_HOST_PATH"
+      fi
+
+      if ! squashfuse "$SRCPATH" "$DSTPATH" >"$STDOUT_PATH" 2>"$STDERR_PATH"; then
+        rmdir "$NOMINAL_DSTPATH"
       else
-        # 'NOMINAL_DSTPATH' is a protocol destination path, whose existence signals
-        # a successful mount. When 'constdst' is unset (by default), 
-        # this is the same as the actual mount destionation path.
-        NOMINAL_DSTPATH="$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/mount"
-        mkdir "$NOMINAL_DSTPATH"
-
-        DSTPATH="$NOMINAL_DSTPATH"
-        if [[ "$OPT_DSTMODE" == "const" ]]; then
-          DSTPATH="$CONST_DST_HOST_PATH"
-        fi
-
-        if ! squashfuse $OPTS "$SRCPATH" "$DSTPATH" $EXTRAS >"$STDOUT_PATH" 2>"$STDERR_PATH"; then
-          rmdir "$NOMINAL_DSTPATH"
-        else
-          # If 'DSTMODE' is 'bind', enter the user/mount namespace and create
-          # a real bind-mount to the requested destination.
-          if [[ "$OPT_DSTMODE" == "bind" ]]; then
-            CONT_DSTPATH="$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount"
-            if nsenter --target $CONTAINER_PID --user --mount --pid mount --bind "$CONT_DSTPATH" "$REQ_DSTPATH" >>"$STDOUT_PATH" 2>>"$STDERR_PATH"; then
-              umount "$NOMINAL_DSTPATH"
-              echo "$REQ_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
-            else
-              echo "$CONT_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
-            fi
-          else
-            # Print out the requested destination.
+        # If 'DSTMODE' is 'bind', enter the user/mount namespace and create
+        # a real bind-mount to the requested destination.
+        if [[ "$OPT_DSTMODE" == "bind" ]]; then
+          CONT_DSTPATH="$BRIDGE_DIR_CONT_PATH/$SQUASHFS_ID/mount"
+          if nsenter --target $CONTAINER_PID --user --mount --pid mount --bind "$CONT_DSTPATH" "$REQ_DSTPATH" >>"$STDOUT_PATH" 2>>"$STDERR_PATH"; then
+            umount "$NOMINAL_DSTPATH"
             echo "$REQ_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
+          else
+            echo "$CONT_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
           fi
+        else
+          # Print out the requested destination.
+          echo "$REQ_DSTPATH" >"$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link"
         fi
       fi
       ;;
@@ -132,7 +169,11 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       if [[ "$OPT_DSTMODE" == "const" ]]; then
         MOUNT_PATH="$CONST_DST_HOST_PATH"
       elif [[ "$OPT_DSTMODE" == "bind" ]]; then
-        MOUNT_PATH=$(cat "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link")
+        MOUNT_PATH=$(cat "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/link" || true)
+        if [[ -z "$MOUNT_PATH" ]]; then
+          req::error "rejecting unmount request with unresolvable path."
+          continue
+        fi
       fi
       
       if [[ "$OPT_DSTMODE" == "bind" ]]; then
@@ -148,9 +189,11 @@ while IFS= read -r CMD <"$BRIDGE_FIFO_HOST_PATH"; do
       rm -rf "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID" >/dev/null 2>&1 || true
       log::echo "bridge dir ls: $(ls "$BRIDGE_DIR_HOST_PATH")"
       ;;
+    *)
+      req::error "rejecting unrecognized request mode '$MODE'."
+      continue
+      ;;
   esac
 
-  if [[ "$MODE" != "ack" ]] && [[ "$MODE" != "cleanup" ]]; then
-    touch "$BRIDGE_DIR_HOST_PATH/$SQUASHFS_ID/done"
-  fi
+  req::done
 done

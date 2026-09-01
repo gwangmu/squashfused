@@ -50,7 +50,7 @@ log "srcpath: $SRCPATH"
 log "dstpath: $DSTPATH"
 log "opts: $OPTS"
 
-if [[ -f "$SRCPATH" ]]; then
+if [[ -n "$SRCPATH" ]]; then
   log "mount"
 
   if [[ "$OPT_DSTMODE" != "null" ]] && [[ "$OPT_DSTMODE" != "const" ]]; then
@@ -146,8 +146,6 @@ if [[ -f "$SRCPATH" ]]; then
   fi
 else
   log "forward"
-
-  echo "squashfuse-stub: cannot find '"$SRCPATH"'. forwarding arguments..."
 
   # Forward the arguments to the delegate daemon.
   echo \

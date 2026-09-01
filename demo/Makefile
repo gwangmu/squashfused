@@ -171,6 +171,12 @@ do_demo_rootfs_bind: build_demo_image do_install_rootfs_bind
 	$(call exec,"ls -l")
 	$(call exec,"ls small_file")
 	echo 
+
+	echo "$$ # Mount illegal sqfs paths."
+	$(call exec,"squashfuse non-existent.sqfs empty_file")
+	$(call exec,"squashfuse ../../host.sqfs empty_file")
+	$(call exec,"squashfuse /../../host.sqfs empty_file")
+	echo
 	
 	$(call clean_up)
 
