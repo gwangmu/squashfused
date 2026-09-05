@@ -28,7 +28,7 @@ Squashfused was developed to _just_ enable the SquashFS mount (in a limited sens
  1. Clone this repository and run `make install` as `root`.
 
 ```
-$ sudo make install
+$ make install  # 'sudo' internally required.
 ```
 
  2. Reboot the system to start the Squashfused server (systemd unit), or manually start it by:
@@ -70,7 +70,7 @@ A demo is also available; in the `demo` directory, run `make do_demo` after inst
 If you didn't like Squashfused, you could uninstall it entirely with this command. No system dependency is touched.
 
 ```
-$ sudo make clean
+$ make uninstall  # 'sudo' internally required.
 ```
 
 ## See Also
