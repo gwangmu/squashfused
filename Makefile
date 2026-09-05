@@ -15,6 +15,9 @@ install:
 	find /usr/local/lib/squashfused -type f -exec sed -i 's|@SQUASHFUSED_SRCMODE@|$(or $(SRCMODE),copy)|g' {} \;
 	find /usr/local/lib/squashfused -type f -exec sed -i 's|@SQUASHFUSED_DSTMODE@|$(or $(DSTMODE),link)|g' {} \;
 	find /usr/local/lib/squashfused -type f -exec sed -i 's|@SQUASHFUSED_CONSTDST@|$(or $(CONSTDST),)|g' {} \;
+	systemctl --user daemon-reload
+	systemctl --user enable squashfused-server.service
+	systemctl --user restart squashfused-server.service
 
 clean:
 	rm -rf /usr/share/containers/oci/hooks.d/squashfused-*
